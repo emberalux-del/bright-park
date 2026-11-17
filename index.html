@@ -318,6 +318,12 @@ textarea.input{height:auto;min-height:96px;padding:12px 14px;resize:none;line-he
 .push.open{transform:none;opacity:1;visibility:visible;transition:transform 240ms var(--ease-out), opacity 220ms var(--ease-out)}
 .push-body{flex:1;overflow-y:auto;padding:16px 16px calc(24px + var(--sab))}
 .in-telegram .push > .tg{display:none}
+.in-telegram .push-body{padding-top:calc(max(72px, var(--sat) + var(--tgc)) + 16px)}
+#passView .stage{max-width:408px;margin:8px auto 12px}
+body.guest-pass .app > .tg,body.guest-pass .tabbar,body.guest-pass #sharePass,body.guest-pass #cancelPass,body.guest-pass .hint{display:none}
+body.guest-pass #passView .tg-btn{visibility:hidden}
+body.guest-pass #passView .push-body{padding-top:24px}
+html.in-telegram body.guest-pass #passView .push-body{padding-top:calc(max(72px, var(--sat) + var(--tgc)) + 16px)}
 
 /* pass card */
 .stage{perspective:900px;margin:8px 0 12px}
@@ -523,7 +529,7 @@ textarea.input{height:auto;min-height:96px;padding:12px 14px;resize:none;line-he
           <svg class="pass-guil" id="guil" aria-hidden="true"></svg>
           <div class="pass-sheen" aria-hidden="true"></div>
           <div class="pass-in">
-            <div class="pass-brand"><span>Брайт Парк</span><span>Пропуск</span></div>
+            <div class="pass-brand"><span>Брайт Парк</span><span>Демо-пропуск</span></div>
             <div class="pass-name" id="pName">Иван</div>
             <div class="pass-type" id="pType">Гость · участок 47</div>
             <div class="pass-grid">
@@ -534,7 +540,7 @@ textarea.input{height:auto;min-height:96px;padding:12px 14px;resize:none;line-he
             </div>
             <div class="pass-qr">
               <svg class="qr" id="qr" role="img" aria-label="QR-код пропуска"></svg>
-              <div class="pass-code"><small>Код</small><b>7Q2KX9</b><p>Покажите охране или назовите код на въезде</p></div>
+              <div class="pass-code"><small>Код</small><b>7Q2KX9</b><p>Демонстрационный QR-код</p></div>
             </div>
           </div>
           <div class="pass-glare" aria-hidden="true"></div>
@@ -1164,9 +1170,17 @@ function openPass(i){
 }
 function closePass(){if(pushStack.length&&pushStack[pushStack.length-1].el.id==='passView')pushClose()}
 $('#passBack').addEventListener('click',closePass);
-$('#cancelPass').addEventListener('click',function(){passes.splice(curPass,1);renderPasses();closePass();haptic('warning');toast('Пропуск отменён, охрана уже видит изменение')});
+$('#cancelPass').addEventListener('click',function(){passes.splice(curPass,1);renderPasses();closePass();haptic('warning');toast('Демо-пропуск удалён')});
 $('#sharePass').addEventListener('click',function(){
-  var link='https://t.me/brightpark_bot?start=pass_7Q2KX9';
+  var p=passes[curPass];
+  if(!p)return;
+  var link=new URL(window.location.origin+window.location.pathname);
+  link.searchParams.set('guest','1');
+  link.searchParams.set('name',p.name);
+  link.searchParams.set('type',p.type);
+  link.searchParams.set('until',p.until);
+  if(p.car)link.searchParams.set('car',p.car);
+  link=link.toString();
   if(TG&&TG.openTelegramLink){TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link));return}
   try{navigator.clipboard.writeText(link).then(function(){toast('Ссылка на пропуск скопирована')},function(){toast('Ссылка: '+link)})}catch(e){toast('Ссылка: '+link)}
 });
@@ -1205,6 +1219,18 @@ var tilt=(function(){
 
 layoutHero();
 apply();
+var guestParams=new URLSearchParams(window.location.search);
+if(guestParams.get('guest')==='1'){
+  var guestType=guestParams.get('type')||'Гость';
+  if(['Гость','Такси','Доставка','Стройка'].indexOf(guestType)===-1)guestType='Гость';
+  passes=[{name:(guestParams.get('name')||'Гость').slice(0,80),type:guestType,
+    car:(guestParams.get('car')||'').slice(0,40),
+    until:(guestParams.get('until')||'Не указано').slice(0,80)}];
+  document.body.classList.add('guest-pass');
+  openPass(0);
+  tilt.stop();
+  if(TG&&TG.BackButton)TG.BackButton.hide();
+}
 /* re-check day/night every minute */
 var lastNight=isNight();setInterval(function(){if(state.time==='auto'&&isNight()!==lastNight){lastNight=isNight();apply()}},60000);
 })();
