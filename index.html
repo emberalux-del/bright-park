@@ -76,6 +76,7 @@ svg{display:block}
 .screens{position:relative;flex:1;min-height:0;overflow:hidden}
 /* in Telegram full screen: keeps scrolled content off the status bar and Telegram's floating buttons */
 .topsafe{position:absolute;left:0;right:0;top:0;height:calc(var(--sat) + var(--tgc));z-index:5;background:var(--bg);pointer-events:none}
+.app.on-home .topsafe{background:var(--sky,#f3ede2)}
 .app > .tg{background:var(--hdr,var(--surface));transition:background-color 400ms var(--ease-io)}
 .app > .tg .tg-btn,.app > .tg .tg-more,.app > .tg .tg-title b{color:var(--hdr-ink,var(--text));transition:color 300ms ease}
 .app > .tg .tg-title span{color:var(--hdr-ink,var(--text-2));opacity:.72;transition:color 300ms ease}
@@ -93,13 +94,10 @@ svg{display:block}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--fill);display:grid;place-items:center;font-weight:600;font-size:15px}
 
 .hero-layer{position:relative;height:calc(var(--H,325px) + var(--sat) + var(--tgc));margin:0}
-.hero{position:absolute;inset:0;overflow:hidden;isolation:isolate;
-  background:radial-gradient(ellipse at 50% 57%,#fffcf6 0%,#f8f3e9 63%,#f3ede2 100%)}
+.hero{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--sky,#f3ede2)}
+.hero.is-drawing{background:radial-gradient(ellipse at 50% 57%,#fffcf6 0%,#f8f3e9 63%,#f3ede2 100%)}
 .hero-house{position:absolute;top:calc(var(--sat) + var(--tgc));left:0;right:0;aspect-ratio:1}
 .hero-photo{position:absolute;inset:0}
-.hero-photo::after{content:"";position:absolute;z-index:2;top:0;left:0;right:0;height:clamp(96px,36%,148px);
-  background:linear-gradient(to bottom,#f3ede2,rgba(243,237,226,.88) 38%,transparent);
-  pointer-events:none}
 .hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
   opacity:0;transition:opacity 260ms var(--ease-out)}
 .hero img.on{opacity:1;z-index:1}
@@ -117,7 +115,7 @@ svg{display:block}
   .hero.is-drawing .hero-drawing,.hero.is-drawing .hero-drawing path{animation:none}
   .hero.is-drawing .hero-photo{animation:house-photo 200ms var(--ease-out) both}
 }
-.home-body{position:relative;z-index:2;margin-top:-20px;padding:20px 16px calc(96px + var(--sab));min-height:calc(100% - var(--H,325px) + 20px);background:var(--bg);border-radius:20px 20px 0 0}
+.home-body{position:relative;z-index:2;margin-top:-32px;padding:32px 16px calc(96px + var(--sab));min-height:calc(100% - var(--H,325px) + 32px);background:var(--bg);border-radius:32px 32px 0 0}
 @supports (animation-timeline: scroll()){
   .hero-greet{animation:greetOut linear both;animation-timeline:scroll(nearest);animation-range:0 140px}
   .hero-status{animation:statusOut linear both;animation-timeline:scroll(nearest);animation-range:60px 220px}
@@ -318,7 +316,7 @@ textarea.input{height:auto;min-height:96px;padding:12px 14px;resize:none;line-he
 
 /* ---------- tab bar ---------- */
 .tabbar{position:absolute;left:12px;right:12px;bottom:calc(8px + var(--sab));z-index:4;display:grid;grid-template-columns:repeat(4,1fr);
-  height:64px;padding:4px;border-radius:32px;background:var(--glass);border:.5px solid var(--glass-line);
+  height:64px;padding:4px;border-radius:999px;overflow:hidden;background:var(--glass);border:.5px solid var(--glass-line);
   -webkit-backdrop-filter:blur(24px) saturate(1.8);backdrop-filter:blur(24px) saturate(1.8);box-shadow:var(--shadow-soft)}
 .tabbar button{height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   font-size:11px;font-weight:500;color:var(--text-2);transition:color 120ms ease,background-color 160ms ease}
@@ -721,7 +719,13 @@ if(TG){document.documentElement.classList.add('in-telegram');try{TG.ready();TG.e
 
 /* Координаты посёлка: нужны для заката/рассвета. Сейчас — Москва, заменить на реальные. */
 var VILLAGE={lat:55.75,lon:37.62};
-var HERO_SKY=['#f3ede2','dark'];
+var INTRO_SKY=['#f3ede2','dark'];
+var SCENE_SKY={
+  summer:['#f3e5da','dark'],evening:['#2f2b3f','light'],
+  cleared:['#f1e4e0','dark'],snowing:['#e5e6ed','dark'],
+  eveCleared:['#0b1220','light'],eveSnow:['#0b1220','light']
+};
+var currentSky=INTRO_SKY;
 
 function haptic(kind){
   try{
@@ -792,28 +796,34 @@ function renderInfo(){
 }
 
 /* Play the architectural drawing once. Scene changes fade between photos. */
-var heroBox=$('#hero');
+var heroBox=$('#hero'),heroImage;
 heroBox.addEventListener('animationend',function(event){
-  if(event.animationName==='house-photo')heroBox.classList.remove('is-drawing');
+  if(event.animationName!=='house-photo')return;
+  heroBox.classList.remove('is-drawing');
+  setSky(heroImage);
 });
 
 function showHero(sc){
-  $$('img',heroBox).forEach(function(img){img.classList.toggle('on',img.dataset.s===sc.img)});
+  heroImage=sc.img;
+  $$('img',heroBox).forEach(function(img){img.classList.toggle('on',img.dataset.s===heroImage)});
+  if(!heroBox.classList.contains('is-drawing'))setSky(heroImage);
 }
-function setSky(){
+function setSky(image){
   var app=$('#app');
-  app.style.setProperty('--sky',HERO_SKY[0]);
-  app.style.setProperty('--sky-ink','#1A1A19');
-  app.dataset.ink=HERO_SKY[1];
+  currentSky=SCENE_SKY[image]||INTRO_SKY;
+  app.style.setProperty('--sky',currentSky[0]);
+  app.style.setProperty('--sky-ink',skyInk());
+  app.dataset.ink=currentSky[1];
   paintHeader();
 }
+function skyInk(){return currentSky[1]==='light'?'#FFFFFF':'#1A1A19'}
 /* Header takes the sky colour only on the home tab. */
 function paintHeader(){
   var app=$('#app'),home=$('#tab-home').classList.contains('active'),r=app.style;
   app.classList.toggle('on-home',home);
-  if(home){r.setProperty('--hdr',HERO_SKY[0]);r.setProperty('--hdr-ink','#1A1A19')}
+  if(home){r.setProperty('--hdr',currentSky[0]);r.setProperty('--hdr-ink',skyInk())}
   else{r.removeProperty('--hdr');r.removeProperty('--hdr-ink')}
-  try{if(TG&&TG.setHeaderColor)TG.setHeaderColor(home?HERO_SKY[0]:getComputedStyle(app).getPropertyValue('--surface').trim())}catch(e){}
+  try{if(TG&&TG.setHeaderColor)TG.setHeaderColor(home?currentSky[0]:getComputedStyle(app).getPropertyValue('--surface').trim())}catch(e){}
 }
 function apply(done){showHero(sceneOf());renderInfo();syncDemo();if(done)done()}
 
