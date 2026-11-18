@@ -938,29 +938,27 @@ var villageMap=(function(){
   }
 
   // Model coordinates: width, depth, and height. The facade is at depth zero.
-  var houseLines=[
-    [[-65,0,0],[-65,0,39],[65,0,39],[65,0,0],[-65,0,0]],
-    [[-71,0,39],[-49,-15,62],[49,-15,62],[71,0,39],[-71,0,39]],
-    [[-70,0,41],[-49,-15,62],[49,-15,62],[70,0,41]],
-    [[-20,1,37],[0,1,53],[20,1,37],[-20,1,37]],
-    [[-16,1,0],[-16,1,36]],[[16,1,0],[16,1,36]],
-    [[-8,1,0],[-8,1,22],[-7,1,27],[-4,1,30],[0,1,31],[4,1,30],[7,1,27],[8,1,22],[8,1,0]],
-    [[-21,3,0],[21,3,0]], [[-23,6,0],[23,6,0]],
-    [[-12,7,0],[-25,91,0]],[[12,7,0],[25,91,0]]
+  var frontElevation=[
+    ['M62 325 187 245h93l19 10 39-6 137 77H322l-45-39-47 39H62Z M74 331h154m96 0h142 M291 277l47-28',.98,.03],
+    ['M77 331v100h158m85 0h147V331 M91 336v90m363-90v90 M219 451h114m-105-7h99m-92-6h84',.78,.09],
+    ['M221 326l56-43 56 43 M238 326v112m80-112v112 M248 434v-77a30 30 0 0 1 60 0v77 M260 433v-77c0-22 37-22 37 0v77Z',.97,.14],
+    ['M106 344h63v65h-63Z M112 350h52v54h-52Z M130 350v54m17-54v54m-35-28h52 M189 345h38v64h-38Z M195 350h26v54h-26Z M208 350v54m-13-28h26 M105 416h66m16 0h42',.87,.21],
+    ['M332 344h33v65h-33Z M338 350h22v54h-22Z M349 350v54m-11-28h22 M374 344h65v65h-65Z M380 350h53v54h-53Z M397 350v54m18-54v54m-35-28h53 M330 416h110',.87,.24],
+    ['M161 265h122m-151 19h105m-135 19h110m124-22h60m-46 19h78m-65 17h90',.38,.15],
+    ['M77 428h145m111 0h134M96 336v89m354-89v89 M266 395h22m0-12v26',.37,.27]
+  ].map(function(layer){return {path:new Path2D(layer[0]),opacity:layer[1],delay:layer[2]}});
+  var walkway=[
+    [[-10,7,0],[-25,91,0]],[[10,7,0],[25,91,0]]
   ];
-  [-47,47].forEach(function(x){
-    houseLines.push([[x-10,.5,9],[x-10,.5,29],[x+10,.5,29],[x+10,.5,9],[x-10,.5,9]]);
-    houseLines.push([[x,.5,9],[x,.5,29]],[[x-10,.5,19],[x+10,.5,19]]);
-  });
   [18,31,47,67,91].forEach(function(y){
-    var x=12+(y-7)*13/84;
-    houseLines.push([[-x,y,0],[x,y,0]]);
+    var x=10+(y-7)*15/84;
+    walkway.push([[-x,y,0],[x,y,0]]);
   });
   var depthLines=[
-    [[65,0,0],[65,-34,0],[65,-34,39],[65,0,39]],
-    [[71,0,39],[71,-34,39],[49,-15,62]],
-    [[-71,0,39],[-71,-34,39],[-49,-15,62]],
-    [[-71,-34,39],[71,-34,39]]
+    [[64,0,2],[64,-39,2],[64,-39,36],[64,0,36]],
+    [[67,0,38],[67,-41,38],[21,0,62]],
+    [[-73,0,38],[-73,-41,38],[-30,0,65]],
+    [[-73,-41,38],[67,-41,38]]
   ];
   var facade=0, facadeMotion=null;
   function clip01(value){return Math.max(0,Math.min(1,value))}
@@ -990,7 +988,6 @@ var villageMap=(function(){
         if(amount<=0)return;
         function project(point){
           var x=point[0],y=point[1],z=point[2];
-          // Center the forward view's roof ridge over the facade.
           return [centerX+(x*cos-y*sin)*scale,centerY+((x*sin+y*cos)*pitch-z*rise)*scale];
         }
         var first=project(line[0]);
@@ -1003,7 +1000,19 @@ var villageMap=(function(){
       });
     }
     if(eased<1)trace(depthLines,.68*(1-eased),WARM);
-    trace(houseLines,.94,CREAM);
+    trace(walkway,.62,CREAM);
+    // Project the original architectural drawing as one vertical plane.
+    var unit=scale/2.95;
+    ctx.translate(centerX,centerY);
+    ctx.transform(cos*unit,sin*pitch*unit,0,rise*unit,0,0);
+    ctx.translate(-277,-438);
+    ctx.lineWidth=1.1/unit;
+    frontElevation.forEach(function(layer){
+      var reveal=clip01((progress-layer.delay)/.33);
+      if(reveal===0)return;
+      ctx.strokeStyle=rgba(CREAM,layer.opacity*reveal);
+      ctx.stroke(layer.path);
+    });
     ctx.restore();
   }
   function draw(now){
