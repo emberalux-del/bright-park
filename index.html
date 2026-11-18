@@ -95,8 +95,11 @@ svg{display:block}
 .hero-layer{position:relative;height:calc(var(--H,325px) + var(--sat) + var(--tgc));margin:0}
 .hero{position:absolute;inset:0;overflow:hidden;isolation:isolate;
   background:radial-gradient(ellipse at 50% 57%,#fffcf6 0%,#f8f3e9 63%,#f3ede2 100%)}
-.hero-house{position:absolute;top:calc(70px + var(--sat) + var(--tgc));left:20px;right:20px;aspect-ratio:1}
-.hero-photo{position:absolute;inset:0;overflow:hidden;border-radius:12px}
+.hero-house{position:absolute;top:calc(var(--sat) + var(--tgc));left:0;right:0;aspect-ratio:1}
+.hero-photo{position:absolute;inset:0}
+.hero-photo::after{content:"";position:absolute;z-index:2;top:0;left:0;right:0;height:clamp(96px,36%,148px);
+  background:linear-gradient(to bottom,#f3ede2,rgba(243,237,226,.88) 38%,transparent);
+  pointer-events:none}
 .hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
   opacity:0;transition:opacity 260ms var(--ease-out)}
 .hero img.on{opacity:1;z-index:1}
@@ -129,7 +132,7 @@ svg{display:block}
 .hero-greet .avatar{width:44px;height:44px;background:rgba(255,255,255,.4);color:inherit;border:.5px solid rgba(255,255,255,.6);
   -webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);pointer-events:auto;transition:transform 160ms var(--ease-out)}
 .hero-greet .avatar:active{transform:scale(.94)}
-.hero-status{position:absolute;left:20px;bottom:23px;z-index:3;display:flex;align-items:center;gap:8px;
+.hero-status{position:absolute;left:16px;bottom:34px;z-index:3;display:flex;align-items:center;gap:8px;
   height:34px;padding:0 13px 0 11px;border-radius:999px;font-size:13.5px;font-weight:500;max-width:calc(100% - 24px);
   background:rgba(255,255,255,.55);color:#1A1A19;border:.5px solid rgba(255,255,255,.6);
   -webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);
@@ -816,7 +819,7 @@ function apply(done){showHero(sceneOf());renderInfo();syncDemo();if(done)done()}
 
 /* ---------- full-bleed hero: collapse on scroll ---------- */
 var heroH=325;
-function layoutHero(){var w=$('#app').clientWidth;heroH=Math.round(w+92);$('#app').style.setProperty('--H',heroH+'px')}
+function layoutHero(){var w=$('#app').clientWidth;heroH=Math.round(w+20);$('#app').style.setProperty('--H',heroH+'px')}
 window.addEventListener('resize',layoutHero);
 
 /* ---------- demo sheet controls ---------- */
