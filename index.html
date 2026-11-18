@@ -960,7 +960,19 @@ var villageMap=(function(){
     [[-73,0,38],[-73,-41,38],[-30,0,65]],
     [[-73,-41,38],[67,-41,38]]
   ];
-  var facade=0, facadeMotion=null;
+  var facade=0, facadeMotion=null, facadeBaseline=0;
+  var facadeEndPitch=.21;
+  function centerFacade(){
+    var greeting=$('#heroGreet'),status=$('.hero-status');
+    var top=greeting.offsetTop+greeting.offsetHeight;
+    var bottom=Math.min(status.offsetTop,btn.offsetTop);
+    var finalScale=W*.81/142;
+    // Center the full drawing, including the path, within the open area.
+    var roofHeight=(438-245)/2.95*Math.sqrt(1-facadeEndPitch*facadeEndPitch);
+    var pathDepth=91*facadeEndPitch;
+    var midpoint=bottom>top?(top+bottom)/2:H/2;
+    facadeBaseline=midpoint+(roofHeight-pathDepth)*finalScale/2;
+  }
   function clip01(value){return Math.max(0,Math.min(1,value))}
   function moveFacade(next,now){
     facadeMotion=reduce?null:{from:facade,to:next,start:now};
@@ -970,10 +982,10 @@ var villageMap=(function(){
   function drawFacade(progress){
     var turning=clip01((progress-.18)/.82), eased=turning*turning*(3-2*turning);
     var yaw=.56*(1-eased),cos=Math.cos(yaw),sin=Math.sin(yaw);
-    var pitch=.58-.37*eased, rise=Math.sqrt(1-pitch*pitch);
+    var pitch=.58+(facadeEndPitch-.58)*eased, rise=Math.sqrt(1-pitch*pitch);
     var anchor=toScreen(mine.x+PW/2,mine.y+PD/2);
     var centerX=anchor[0]+(W/2-anchor[0])*eased;
-    var centerY=anchor[1]+(H*.62-anchor[1])*eased;
+    var centerY=anchor[1]+(facadeBaseline-anchor[1])*eased;
     var scale=W*(.41+.40*eased)/142;
     ctx.save();
     ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -1093,6 +1105,7 @@ var villageMap=(function(){
   function toggle(){scan=null;haptic('light');var next=view==='plot'?'all':'plot';if(next==='all')moveFacade(0,performance.now());go(next,900,function(n){if(next==='plot'){pulse=reduce?null:n;moveFacade(1,n)}});setBtn()}
   btn.addEventListener('click',toggle);cv.addEventListener('click',toggle);
   function resize(){var r=cv.getBoundingClientRect();if(!r.width)return;dpr=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+    centerFacade();
     if(!anim)cam=view==='plot'?camPlot():camAll();
     flakes=[];for(var i=0;i<70;i++)flakes.push({x:Math.random()*W,y:Math.random()*H,r:.8+Math.random()*1.6,v:.02+Math.random()*.035,p:Math.random()*6});kick()}
   var intro=false;
