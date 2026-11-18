@@ -826,6 +826,10 @@ var villageMap=(function(){
     bounds={x0:Math.min.apply(null,plots.map(function(p){return p.x}))-60,x1:Math.max.apply(null,plots.map(function(p){return p.x+PW}))+60,y0:ymin-60,y1:gate.y+30};
   }
   build();
+  var buildings=plots.filter(function(p){return p.house}).map(function(p){
+    var h=p.house;
+    return {x:h.x,y:h.y,w:h.w,h:h.h,z:5.5+(h.h-10)*.7,lit:h.lit,selected:p===mine};
+  }).sort(function(a,b){return (a.x-b.x)*SIN+(a.y+a.h-b.y-b.h)*COS});
   var routeY=mine.face*PER, routeX=mine.x+PW/2;
   var route=[[gate.x,gate.y],[gate.x,routeY],[routeX,routeY],[routeX,mine.north?mine.y:mine.y+PD]];
   var routeLengths=[0];
@@ -852,15 +856,15 @@ var villageMap=(function(){
   })();
 
   /* camera */
-  var dpr=1,W=0,H=0,cam={x:0,y:0,s:1},view='plot',anim=null,sweep=null,pulse=null,scan=null,raf=0,sc={night:false,weather:'none'},cleared=true,flakes=[];
+  var dpr=1,W=0,H=0,cam={x:0,y:0,s:1,tilt:.8},view='plot',anim=null,sweep=null,pulse=null,scan=null,raf=0,sc={night:false,weather:'none'},cleared=true,flakes=[];
   function focal(){var top=96+num('--sat'),bot=96;return {x:W/2,y:top+(H-top-bot)/2,top:top,bot:bot}}
   function num(v){return parseFloat(getComputedStyle($('#app')).getPropertyValue(v))||0}
-  function camPlot(){return {x:mine.x+PW/2,y:mine.y+PD/2,s:Math.max(1.15,W/300)}}
+  function camPlot(){return {x:mine.x+PW/2,y:mine.y+PD/2,s:Math.max(1.15,W/300),tilt:.59}}
   function camAll(){var f=focal(),pts=[[bounds.x0,bounds.y0],[bounds.x1,bounds.y0],[bounds.x0,bounds.y1],[bounds.x1,bounds.y1]].map(function(q){return [q[0]*COS-q[1]*SIN,q[0]*SIN+q[1]*COS]});
     var xs=pts.map(function(q){return q[0]}),ys=pts.map(function(q){return q[1]}),w=Math.max.apply(null,xs)-Math.min.apply(null,xs),h=Math.max.apply(null,ys)-Math.min.apply(null,ys);
-    var s=Math.min((W-24)/w,(H-f.top-f.bot+40)/h);return {x:(bounds.x0+bounds.x1)/2,y:(bounds.y0+bounds.y1)/2,s:s}}
-  function toScreen(x,y){var f=focal(),dx=(x-cam.x)*cam.s,dy=(y-cam.y)*cam.s;return [f.x+dx*COS-dy*SIN,f.y+dx*SIN+dy*COS]}
-  function setT(){var f=focal(),a=cam.s*COS*dpr,b=cam.s*SIN*dpr;ctx.setTransform(a,b,-b,a,dpr*f.x-(a*cam.x-b*cam.y),dpr*f.y-(b*cam.x+a*cam.y))}
+    var s=Math.min((W-24)/w,(H-f.top-f.bot+40)/(h*.82));return {x:(bounds.x0+bounds.x1)/2,y:(bounds.y0+bounds.y1)/2,s:s,tilt:.82}}
+  function toScreen(x,y){var f=focal(),dx=(x-cam.x)*cam.s,dy=(y-cam.y)*cam.s;return [f.x+dx*COS-dy*SIN,f.y+(dx*SIN+dy*COS)*cam.tilt]}
+  function setT(){var f=focal(),a=cam.s*COS*dpr,b=cam.s*SIN*dpr;ctx.setTransform(a,b*cam.tilt,-b,a*cam.tilt,dpr*f.x-(a*cam.x-b*cam.y),dpr*f.y-(b*cam.x+a*cam.y)*cam.tilt)}
 
   var glow;(function(){glow=document.createElement('canvas');glow.width=glow.height=64;var g=glow.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,32);
     gr.addColorStop(0,'rgba(255,214,150,.9)');gr.addColorStop(.25,'rgba(255,190,110,.35)');gr.addColorStop(1,'rgba(255,170,90,0)');g.fillStyle=gr;g.fillRect(0,0,64,64)})();
@@ -907,9 +911,36 @@ var villageMap=(function(){
     ctx.restore();
   }
 
+  // Paint the visible walls and roofs in projected depth order.
+  function drawBuildings(detail,snow,night){
+    if(detail<=0)return;
+    var edge=snow?SNOW:CREAM, rise=cam.s*Math.sqrt(1-cam.tilt*cam.tilt);
+    ctx.lineWidth=.7;
+    ctx.lineJoin='round';
+    function face(points,color,opacity){
+      ctx.beginPath();
+      ctx.moveTo(points[0][0],points[0][1]);
+      for(var i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);
+      ctx.closePath();
+      ctx.fillStyle=rgba(color,opacity*detail);ctx.fill();
+      ctx.strokeStyle=rgba(color,.62*detail);ctx.stroke();
+    }
+    buildings.forEach(function(h){
+      var a=toScreen(h.x,h.y),lift=h.z*rise;
+      if(a[0]<-36||a[0]>W+36||a[1]<-36||a[1]>H+36)return;
+      var b=toScreen(h.x+h.w,h.y),c=toScreen(h.x+h.w,h.y+h.h),d=toScreen(h.x,h.y+h.h);
+      var A=[a[0],a[1]-lift],B=[b[0],b[1]-lift],C=[c[0],c[1]-lift],D=[d[0],d[1]-lift];
+      var color=h.selected?WARM:edge;
+      face([b,c,C,B],color,h.selected?.30:.13);
+      face([c,d,D,C],color,h.selected?.38:.21);
+      face([A,B,C,D],color,h.selected?.72:snow?.42:night?.24:.32);
+    });
+  }
+
   function draw(now){
     ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);if(!W)return;
     var s=cam.s,px=1/s,snow=sc.weather!=='none',night=sc.night,detail=Math.min(1,Math.max(0,(s-.45)/.9));
+    var volume=Math.min(1,Math.max(0,(s-.32)/.65));
     setT();
     ctx.fillStyle=rgba(snow?SNOW:CREAM,snow?.09:.045);ctx.fill(P.land);
     ctx.fillStyle=rgba(snow?SNOW:CREAM,(snow?(night?.06:.09):(night?.035:.06))*(1-.6*detail));ctx.fill(P.trees);
@@ -925,8 +956,8 @@ var villageMap=(function(){
       if(sweep){var p=Math.min(1,Math.max(0,(now-sweep.t0)/sweep.d)),e=1-Math.pow(1-p,3);ctx.save();ctx.beginPath();ctx.arc(gate.x,gate.y,e*sweep.r,0,Math.PI*2);ctx.clip();clearedRoads();ctx.restore();if(p>=1)sweep=null}}
     /* plots and houses fade in as the camera gets closer */
     ctx.lineWidth=.8*px;ctx.strokeStyle=rgba(snow?SNOW:CREAM,.08+.2*detail);ctx.stroke(P.plots);
-    if(night){ctx.fillStyle=rgba(snow?SNOW:CREAM,snow?.26:.14);ctx.fill(P.dark);ctx.fillStyle=rgba(WARM,.55);ctx.fill(P.lit)}
-    else{ctx.fillStyle=rgba(snow?SNOW:CREAM,snow?.62:.42);ctx.fill(P.houses)}
+    if(night){ctx.fillStyle=rgba(snow?SNOW:CREAM,(snow?.26:.14)*(1-volume));ctx.fill(P.dark);ctx.fillStyle=rgba(CREAM,.5*(1-volume));ctx.fill(P.lit)}
+    else{ctx.fillStyle=rgba(snow?SNOW:CREAM,(snow?.62:.42)*(1-volume));ctx.fill(P.houses)}
     ctx.fillStyle=rgba(CREAM,.75);ctx.fill(P.gate);
     if(night){ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.3+.7*detail;var g=12;
       for(var i=0;i<lamps.length;i++){var l=lamps[i];ctx.drawImage(glow,l[0]-g,l[1]-g,g*2,g*2)}ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1}
@@ -935,15 +966,16 @@ var villageMap=(function(){
     var t=pulse?Math.min(1,Math.max(0,(now-pulse)/480)):1;
     ctx.fillStyle=rgba(WARM,.2);ctx.fillRect(mine.x,mine.y,PW,PD);
     ctx.lineWidth=2*px;ctx.strokeStyle=rgba(WARM,1);ctx.strokeRect(mine.x,mine.y,PW,PD);
-    if(mine.house){ctx.fillStyle=rgba(WARM,1);ctx.fillRect(mine.house.x,mine.house.y,mine.house.w,mine.house.h)}
+    if(mine.house){ctx.fillStyle=rgba(WARM,1-volume);ctx.fillRect(mine.house.x,mine.house.y,mine.house.w,mine.house.h)}
     if(pulse&&t<1){var k=t,grow=k*12*px;ctx.lineWidth=1.5*px;ctx.strokeStyle=rgba(WARM,(1-k)*.7);ctx.strokeRect(mine.x-grow,mine.y-grow,PW+grow*2,PD+grow*2)}
     if(t>=1)pulse=null;
     /* labels in screen space */
     ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textBaseline='middle';
+    drawBuildings(volume,snow,night);
     if(s<1){var gs=toScreen(gate.x,gate.y+16);ctx.font='600 11px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle=rgba(CREAM,.7);ctx.textAlign='center';ctx.fillText('КПП',gs[0],gs[1])}
     if(s>1.1){var dirty=snow&&!cleared;ctx.font='500 11px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle=dirty?'rgba(60,42,30,.8)':rgba(CREAM,.6);
       streets.forEach(function(st){var wx=Math.min(st.x1-50,Math.max(st.x0+50,cam.x-125/s)),q=toScreen(wx,st.y);
-        if(q[1]<70||q[1]>H-40)return;ctx.save();ctx.translate(q[0],q[1]);ctx.rotate(ANG);ctx.fillText('ул. '+st.name,0,0);ctx.restore()})}
+        if(q[1]<70||q[1]>H-40)return;ctx.save();ctx.translate(q[0],q[1]);ctx.rotate(Math.atan2(cam.tilt*SIN,COS));ctx.fillText('ул. '+st.name,0,0);ctx.restore()})}
     /* snowfall in screen space */
     if(sc.weather==='snowing'){ctx.fillStyle='rgba(255,255,255,.75)';var dt=Math.min(50,now-(draw.last||now));draw.last=now;
       flakes.forEach(function(f){f.y+=f.v*dt;f.x+=Math.sin((now/900)+f.p)*.15;if(f.y>H+4){f.y=-4;f.x=Math.random()*W}ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,Math.PI*2);ctx.fill()})}
@@ -962,14 +994,14 @@ var villageMap=(function(){
       }
     }
     if(anim){var p=Math.min(1,Math.max(0,(now-anim.t0)/anim.d)),e=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,a=anim.a,b=anim.b;
-      cam.x=a.x+(b.x-a.x)*e;cam.y=a.y+(b.y-a.y)*e;cam.s=Math.exp(Math.log(a.s)+(Math.log(b.s)-Math.log(a.s))*e);
+      cam.x=a.x+(b.x-a.x)*e;cam.y=a.y+(b.y-a.y)*e;cam.tilt=a.tilt+(b.tilt-a.tilt)*e;cam.s=Math.exp(Math.log(a.s)+(Math.log(b.s)-Math.log(a.s))*e);
       if(p>=1){var done=anim.done;anim=null;done&&done(now)}}
     draw(now);
     if((scan!==null||anim||sweep||pulse||sc.weather==='snowing')&&active())raf=requestAnimationFrame(frame);
   }
   function kick(){if(!raf)raf=requestAnimationFrame(frame)}
   function go(to,d,done){if(reduce){view=to;cam=to==='plot'?camPlot():camAll();kick();done&&done();return}
-    anim={a:{x:cam.x,y:cam.y,s:cam.s},b:to==='plot'?camPlot():camAll(),t0:performance.now(),d:d,done:done};view=to;kick()}
+    anim={a:{x:cam.x,y:cam.y,s:cam.s,tilt:cam.tilt},b:to==='plot'?camPlot():camAll(),t0:performance.now(),d:d,done:done};view=to;kick()}
   function setBtn(){btn.setAttribute('aria-label',view==='plot'?'Показать весь посёлок':'Показать мой участок');
     btn.innerHTML=view==='plot'?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>'
       :'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>'}
