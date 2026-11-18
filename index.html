@@ -937,8 +937,78 @@ var villageMap=(function(){
     });
   }
 
+  // Model coordinates: width, depth, and height. The facade is at depth zero.
+  var houseLines=[
+    [[-65,0,0],[-65,0,39],[65,0,39],[65,0,0],[-65,0,0]],
+    [[-71,0,39],[-49,-15,62],[49,-15,62],[71,0,39],[-71,0,39]],
+    [[-70,0,41],[-49,-15,62],[49,-15,62],[70,0,41]],
+    [[-20,1,37],[0,1,53],[20,1,37],[-20,1,37]],
+    [[-16,1,0],[-16,1,36]],[[16,1,0],[16,1,36]],
+    [[-8,1,0],[-8,1,22],[-7,1,27],[-4,1,30],[0,1,31],[4,1,30],[7,1,27],[8,1,22],[8,1,0]],
+    [[-21,3,0],[21,3,0]], [[-23,6,0],[23,6,0]],
+    [[-12,7,0],[-25,91,0]],[[12,7,0],[25,91,0]]
+  ];
+  [-47,47].forEach(function(x){
+    houseLines.push([[x-10,.5,9],[x-10,.5,29],[x+10,.5,29],[x+10,.5,9],[x-10,.5,9]]);
+    houseLines.push([[x,.5,9],[x,.5,29]],[[x-10,.5,19],[x+10,.5,19]]);
+  });
+  [18,31,47,67,91].forEach(function(y){
+    var x=12+(y-7)*13/84;
+    houseLines.push([[-x,y,0],[x,y,0]]);
+  });
+  var depthLines=[
+    [[65,0,0],[65,-34,0],[65,-34,39],[65,0,39]],
+    [[71,0,39],[71,-34,39],[49,-15,62]],
+    [[-71,0,39],[-71,-34,39],[-49,-15,62]],
+    [[-71,-34,39],[71,-34,39]]
+  ];
+  var facade=0, facadeMotion=null;
+  function clip01(value){return Math.max(0,Math.min(1,value))}
+  function moveFacade(next,now){
+    facadeMotion=reduce?null:{from:facade,to:next,start:now};
+    if(reduce)facade=next;
+    kick();
+  }
+  function drawFacade(progress){
+    var turning=clip01((progress-.18)/.82), eased=turning*turning*(3-2*turning);
+    var yaw=.56*(1-eased),cos=Math.cos(yaw),sin=Math.sin(yaw);
+    var pitch=.58-.37*eased, rise=Math.sqrt(1-pitch*pitch);
+    var anchor=toScreen(mine.x+PW/2,mine.y+PD/2);
+    var centerX=anchor[0]+(W/2-anchor[0])*eased;
+    var centerY=anchor[1]+(H*.62-anchor[1])*eased;
+    var scale=W*(.41+.40*eased)/142;
+    ctx.save();
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.globalAlpha=clip01((progress-.08)/.85);
+    ctx.fillStyle=currentSky;ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=1;
+    ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=1.15;
+    function trace(lines,alpha,color){
+      ctx.strokeStyle=rgba(color,alpha);
+      lines.forEach(function(line,i){
+        var segments=line.length-1,amount=clip01((progress-.033-i*.013)/.38)*segments;
+        if(amount<=0)return;
+        function project(point){
+          var x=point[0],y=point[1],z=point[2];
+          // Center the forward view's roof ridge over the facade.
+          return [centerX+(x*cos-y*sin)*scale,centerY+((x*sin+y*cos)*pitch-z*rise)*scale];
+        }
+        var first=project(line[0]);
+        ctx.beginPath();ctx.moveTo(first[0],first[1]);
+        for(var j=1;j<=Math.ceil(amount);j++){
+          var a=project(line[j-1]),b=project(line[j]),part=Math.min(1,amount-j+1);
+          ctx.lineTo(a[0]+(b[0]-a[0])*part,a[1]+(b[1]-a[1])*part);
+        }
+        ctx.stroke();
+      });
+    }
+    if(eased<1)trace(depthLines,.68*(1-eased),WARM);
+    trace(houseLines,.94,CREAM);
+    ctx.restore();
+  }
   function draw(now){
     ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);if(!W)return;
+    if(facade>=1){lbl.classList.remove('on');drawFacade(1);return}
     var s=cam.s,px=1/s,snow=sc.weather!=='none',night=sc.night,detail=Math.min(1,Math.max(0,(s-.45)/.9));
     var volume=Math.min(1,Math.max(0,(s-.32)/.65));
     setT();
@@ -980,15 +1050,16 @@ var villageMap=(function(){
     if(sc.weather==='snowing'){ctx.fillStyle='rgba(255,255,255,.75)';var dt=Math.min(50,now-(draw.last||now));draw.last=now;
       flakes.forEach(function(f){f.y+=f.v*dt;f.x+=Math.sin((now/900)+f.p)*.15;if(f.y>H+4){f.y=-4;f.x=Math.random()*W}ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,Math.PI*2);ctx.fill()})}
     /* DOM label above the plot */
-    var lp=toScreen(mine.x+PW/2,mine.y),show=view==='plot'&&!anim&&s>1;
+    var lp=toScreen(mine.x+PW/2,mine.y),show=view==='plot'&&!anim&&s>1&&facade<.08;
     lbl.style.transform='translate3d('+lp[0].toFixed(1)+'px,'+(lp[1]-10).toFixed(1)+'px,0) translate(-50%,-100%)';lbl.classList.toggle('on',show);
+    if(facade>0)drawFacade(facade);
   }
   function active(){return !document.hidden&&$('#tab-home').classList.contains('active')}
   function frame(now){raf=0;
     if(scan!==null){
       var elapsed=now-scan;
       if(elapsed>=1850){
-        scan=null;anim=null;cam=camPlot();view='plot';setBtn();
+        scan=null;anim=null;cam=camPlot();view='plot';setBtn();moveFacade(1,now);
       }else if(elapsed>=430&&view==='all'){
         go('plot',1420);setBtn();
       }
@@ -996,16 +1067,21 @@ var villageMap=(function(){
     if(anim){var p=Math.min(1,Math.max(0,(now-anim.t0)/anim.d)),e=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,a=anim.a,b=anim.b;
       cam.x=a.x+(b.x-a.x)*e;cam.y=a.y+(b.y-a.y)*e;cam.tilt=a.tilt+(b.tilt-a.tilt)*e;cam.s=Math.exp(Math.log(a.s)+(Math.log(b.s)-Math.log(a.s))*e);
       if(p>=1){var done=anim.done;anim=null;done&&done(now)}}
+    if(facadeMotion){
+      var progress=clip01((now-facadeMotion.start)/(facadeMotion.to===1?1380:420));
+      facade=facadeMotion.from+(facadeMotion.to-facadeMotion.from)*progress;
+      if(progress>=1)facadeMotion=null;
+    }
     draw(now);
-    if((scan!==null||anim||sweep||pulse||sc.weather==='snowing')&&active())raf=requestAnimationFrame(frame);
+    if((scan!==null||anim||facadeMotion||(facade<1&&(sweep||pulse||sc.weather==='snowing')))&&active())kick();
   }
   function kick(){if(!raf)raf=requestAnimationFrame(frame)}
-  function go(to,d,done){if(reduce){view=to;cam=to==='plot'?camPlot():camAll();kick();done&&done();return}
+  function go(to,d,done){if(reduce){view=to;cam=to==='plot'?camPlot():camAll();kick();done&&done(performance.now());return}
     anim={a:{x:cam.x,y:cam.y,s:cam.s,tilt:cam.tilt},b:to==='plot'?camPlot():camAll(),t0:performance.now(),d:d,done:done};view=to;kick()}
   function setBtn(){btn.setAttribute('aria-label',view==='plot'?'Показать весь посёлок':'Показать мой участок');
     btn.innerHTML=view==='plot'?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>'
       :'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>'}
-  function toggle(){scan=null;haptic('light');go(view==='plot'?'all':'plot',900,function(n){if(view==='plot'&&!reduce){pulse=n;kick()}});setBtn()}
+  function toggle(){scan=null;haptic('light');var next=view==='plot'?'all':'plot';if(next==='all')moveFacade(0,performance.now());go(next,900,function(n){if(next==='plot'){pulse=reduce?null:n;moveFacade(1,n)}});setBtn()}
   btn.addEventListener('click',toggle);cv.addEventListener('click',toggle);
   function resize(){var r=cv.getBoundingClientRect();if(!r.width)return;dpr=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
     if(!anim)cam=view==='plot'?camPlot():camAll();
@@ -1018,7 +1094,7 @@ var villageMap=(function(){
       if(wasDirty&&isCleared&&s.weather!=='none'&&!reduce){var r=0;plots.forEach(function(p){r=Math.max(r,Math.hypot(p.x-gate.x,p.y-gate.y))});sweep={t0:performance.now(),d:1800,r:r+60}}
       if(!intro){
         intro=true;resize();
-        if(reduce){cam=camPlot();view='plot'}
+        if(reduce){cam=camPlot();view='plot';facade=1}
         else{cam=camAll();view='all';scan=performance.now()}
         setBtn()
       }
