@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Брайт Парк · Кабинет УК</title>
+  <link rel="stylesheet" href="/cabinet.css">
+  <script src="/cabinet.js" defer></script>
+  <script src="/phone.js" defer></script>
+</head>
+<body>
+<main class="admin" data-role="admin">
+  <header class="masthead"><span class="brand">Брайт Парк</span><h1>Кабинет УК</h1><p>Привязка жителей к участкам</p></header>
+  <section class="card registry" aria-labelledby="registry-title">
+    <h2 id="registry-title">Реестр для входа по телефону</h2>
+    <form id="registry-upload">
+      <label>Файл XLSX или CSV с колонками «Телефон» и «Участок»
+        <input name="registry" type="file" accept=".xlsx,.csv" required>
+      </label>
+      <button type="submit">Загрузить реестр</button>
+    </form>
+    <p class="feedback" id="phone-feedback" role="status"></p>
+    <details>
+      <summary id="registry-count">Активные записи</summary>
+      <ul id="registry-entries" class="registry-entries"></ul>
+    </details>
+  </section>
+  <div class="admin-tools">
+    <section class="card">
+      <h2>Реестр участков</h2>
+      <p id="plot-count"></p>
+      <form id="plots">
+        <label>Вставьте столбец номеров из Excel, по одному номеру на строку
+          <textarea name="numbers" rows="3" required placeholder="47"></textarea>
+        </label>
+        <button type="submit">Добавить участки</button>
+      </form>
+    </section>
+    <section class="card">
+      <h2>Пригласить жителя</h2>
+      <form id="new-invite">
+        <label>Участок <select name="plot" required></select></label>
+        <button type="submit">Создать ссылку на 24 часа</button>
+      </form>
+      <label id="invite-result" hidden>Одноразовая ссылка
+        <input id="invite-link" readonly>
+        <button id="copy-link" class="secondary" type="button">Скопировать ссылку</button>
+      </label>
+      <div id="invites"></div>
+    </section>
+  </div>
+  <div class="list-header"><h2>Заявки и привязки</h2><button id="refresh" class="secondary" type="button">Обновить</button></div>
+  <p id="feedback" class="feedback" role="status"></p>
+  <div id="applications" class="application-list"></div>
+</main>
+</body>
+</html>
