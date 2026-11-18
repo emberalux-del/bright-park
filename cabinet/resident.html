@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Брайт Парк · Личный кабинет</title>
+  <link rel="stylesheet" href="/cabinet.css">
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <script src="/cabinet.js" defer></script>
+</head>
+<body>
+<main class="resident" data-role="resident">
+  <header class="masthead"><span class="brand">Брайт Парк</span><h1>Личный кабинет</h1><p id="resident-name"></p></header>
+  <section class="card" aria-labelledby="state-title">
+    <h2 id="state-title">Подключаем личный кабинет</h2>
+    <p id="state-detail" aria-live="polite"></p>
+    <a id="open-telegram" class="button" hidden>Открыть в Telegram</a>
+    <button id="refresh" type="button" class="secondary" hidden>Проверить статус</button>
+    <button id="redeem" type="button" hidden>Привязать по приглашению</button>
+    <button id="show-request" type="button" class="secondary" hidden>Отправить заявку вручную</button>
+    <form id="apply" hidden>
+      <label>Номер участка <input name="plot" required maxlength="24" placeholder="Например, 47"></label>
+      <label>Телефон для связи <input name="phone" required type="tel" autocomplete="tel" maxlength="25" placeholder="+7"></label>
+      <button type="submit">Отправить заявку</button>
+    </form>
+    <p role="status" class="feedback" id="feedback"></p>
+  </section>
+</main>
+</body>
+</html>

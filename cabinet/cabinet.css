@@ -1,0 +1,33 @@
+:root{font-family:system-ui,sans-serif;background:#f2f1ee;color:#1a1a19;color-scheme:light;--muted:#64625e;--accent:#6b4f3d;--surface:#fff;--line:#ddd7d0}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
+main{margin:auto;padding:36px 20px 64px}
+.resident{max-width:520px}
+.admin{max-width:960px}
+.masthead{margin:0 0 24px}
+.brand{font-size:.75rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(2rem,6vw,3.25rem);line-height:1.06;letter-spacing:-.045em;margin:12px 0 8px}
+h2{font-size:1.22rem;letter-spacing:-.02em;margin:0 0 10px}
+p{margin:0 0 12px;color:var(--muted);line-height:1.45;overflow-wrap:anywhere}
+.card{padding:22px;border-radius:22px;background:var(--surface);box-shadow:0 8px 28px #241b120b}
+form,.application-list{display:grid;gap:12px}
+form{margin-top:14px}
+label{display:grid;gap:7px;font-size:.9rem;font-weight:600}
+input,select,textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:#faf9f7;color:inherit;font:inherit;font-size:16px}
+textarea{resize:vertical}
+button,.button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:0;border-radius:12px;background:var(--accent);color:white;font:inherit;font-weight:650;cursor:pointer;text-align:center;text-decoration:none}
+button:disabled{opacity:.55;cursor:wait}
+button.secondary{background:#eeeae4;color:#49372a}
+.resident button,.resident .button{width:100%;margin:4px 0}
+.feedback{color:#89452d;font-size:.92rem}
+.feedback:empty{display:none}
+.card .feedback{margin:12px 0 0}
+.admin-tools{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.list-header,.invite-row,.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.list-header,.invite-row{justify-content:space-between}
+.list-header{margin:26px 0 12px}
+.list-header h2{margin:0}
+.invite-row{margin-top:12px}
+#invite-result{margin-top:14px}
+@media(max-width:640px){.admin-tools{grid-template-columns:1fr}.card{padding:17px}}
