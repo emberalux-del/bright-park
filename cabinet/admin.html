@@ -6,10 +6,25 @@
   <title>Брайт Парк · Кабинет УК</title>
   <link rel="stylesheet" href="/cabinet.css">
   <script src="/cabinet.js" defer></script>
+  <script src="/phone.js" defer></script>
 </head>
 <body>
 <main class="admin" data-role="admin">
   <header class="masthead"><span class="brand">Брайт Парк</span><h1>Кабинет УК</h1><p>Привязка жителей к участкам</p></header>
+  <section class="card registry" aria-labelledby="registry-title">
+    <h2 id="registry-title">Реестр для входа по телефону</h2>
+    <form id="registry-upload">
+      <label>Файл XLSX или CSV с колонками «Телефон» и «Участок»
+        <input name="registry" type="file" accept=".xlsx,.csv" required>
+      </label>
+      <button type="submit">Загрузить реестр</button>
+    </form>
+    <p class="feedback" id="phone-feedback" role="status"></p>
+    <details>
+      <summary id="registry-count">Активные записи</summary>
+      <ul id="registry-entries" class="registry-entries"></ul>
+    </details>
+  </section>
   <div class="admin-tools">
     <section class="card">
       <h2>Реестр участков</h2>

@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { phoneRoutes } from './phone.mjs';
 
 const env = process.env;
 const origin = new URL(env.APP_ORIGIN ?? 'http://localhost:3000');
@@ -45,6 +46,7 @@ db.exec(`
 
 const assets = {
   '/': ['resident.html', 'text/html; charset=utf-8'],
+  '/phone.js': ['phone.js', 'text/javascript; charset=utf-8'],
   '/admin': ['admin.html', 'text/html; charset=utf-8'],
   '/cabinet.css': ['cabinet.css', 'text/css; charset=utf-8'],
   '/cabinet.js': ['cabinet.js', 'text/javascript; charset=utf-8'],
@@ -172,6 +174,8 @@ function json(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }).end(JSON.stringify(body));
 }
 
+const handlePhone = phoneRoutes({ db, origin, first, run, all, now, transaction, hash, same, plotNumber, readJson, json, RequestError });
+
 createServer(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -187,6 +191,7 @@ createServer(async (req, res) => {
     }
     if (method === 'GET' && route === '/api/config') return json(res, 200, { botLink });
     if (method === 'POST' && req.headers.origin !== origin.origin) throw new RequestError(403, 'Недопустимый источник запроса.');
+    if ((route.startsWith('/api/phone/') || route.startsWith('/api/admin/registry')) && await handlePhone(req, res, route)) return;
     if (route === '/api/resident' && method === 'GET') return json(res, 200, residentState(resident(req)));
     if (route === '/api/resident/application' && method === 'POST') {
       const user = resident(req);

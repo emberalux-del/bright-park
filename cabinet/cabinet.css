@@ -31,3 +31,10 @@ button.secondary{background:#eeeae4;color:#49372a}
 .invite-row{margin-top:12px}
 #invite-result{margin-top:14px}
 @media(max-width:640px){.admin-tools{grid-template-columns:1fr}.card{padding:17px}}
+.alternate-login,.registry{margin-block:14px}
+summary{cursor:pointer;font-weight:600}
+.alternate-login[open] summary{margin-bottom:16px}
+.registry details{margin-top:14px}
+.registry-entries{list-style:none;padding:0;margin-bottom:0}
+.registry-entries li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-block:8px;border-top:1px solid var(--line);flex-wrap:wrap}
+#phone-login form + button,#phone-profile form + button{margin-top:12px}

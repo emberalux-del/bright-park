@@ -7,11 +7,42 @@
   <link rel="stylesheet" href="/cabinet.css">
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
   <script src="/cabinet.js" defer></script>
+  <script src="/phone.js" defer></script>
 </head>
 <body>
 <main class="resident" data-role="resident">
   <header class="masthead"><span class="brand">Брайт Парк</span><h1>Личный кабинет</h1><p id="resident-name"></p></header>
-  <section class="card" aria-labelledby="state-title">
+  <section class="card" id="phone-login" aria-labelledby="phone-title">
+    <h2 id="phone-title">Вход по телефону</h2>
+    <form id="password-login">
+      <label>Телефон <input name="phone" type="tel" autocomplete="username" required maxlength="25" placeholder="+7"></label>
+      <label>Пароль <input name="password" type="password" autocomplete="current-password" required maxlength="128"></label>
+      <button type="submit">Войти</button>
+    </form>
+    <button id="show-activation" type="button" class="secondary">Первый вход или забыли пароль</button>
+    <form id="phone-activation" hidden>
+      <label>Телефон из реестра УК <input name="phone" type="tel" autocomplete="tel" required maxlength="25" placeholder="+7"></label>
+      <button id="request-code" type="button" class="secondary">Получить код по SMS</button>
+      <label>Код из SMS <input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required maxlength="6"></label>
+      <label>Новый пароль <input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></label>
+      <button type="submit">Задать пароль и войти</button>
+      <button id="show-login" type="button" class="secondary">Вернуться ко входу</button>
+    </form>
+    <section id="phone-profile" hidden aria-label="Данные участка">
+      <p id="phone-plot"></p>
+      <p id="phone-number"></p>
+      <form id="password-change">
+        <label>Текущий пароль <input name="current" type="password" autocomplete="current-password" required maxlength="128"></label>
+        <label>Новый пароль <input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></label>
+        <button type="submit">Сменить пароль</button>
+      </form>
+      <button id="phone-logout" type="button" class="secondary">Выйти</button>
+    </section>
+    <p class="feedback" id="phone-feedback" role="status"></p>
+  </section>
+  <details class="card alternate-login" id="telegram-options">
+  <summary>Есть приглашение от УК или нужна ручная проверка</summary>
+  <section aria-labelledby="state-title">
     <h2 id="state-title">Подключаем личный кабинет</h2>
     <p id="state-detail" aria-live="polite"></p>
     <a id="open-telegram" class="button" hidden>Открыть в Telegram</a>
@@ -25,6 +56,7 @@
     </form>
     <p role="status" class="feedback" id="feedback"></p>
   </section>
+  </details>
 </main>
 </body>
 </html>
