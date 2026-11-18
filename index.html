@@ -96,26 +96,22 @@ svg{display:block}
 .hero-layer{position:relative;height:calc(var(--H,325px) + var(--sat) + var(--tgc));margin:0}
 .hero{position:absolute;inset:0;overflow:hidden;background:var(--sky,#493328);
   transition:background-color 400ms var(--ease-io)}
-.hero-house{position:absolute;top:calc(68px + var(--sat) + var(--tgc));left:0;right:0;bottom:68px}
-.hero-drawing{width:100%;height:100%;pointer-events:none;fill:none;stroke:#efe0cc;
-  stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
-.hero-drawing [pathLength]{animation:house-trace 720ms var(--ease-out) var(--trace-delay,0ms) both}
-.hero-drawing .elevation-guide{stroke:#b59a82;stroke-width:1.05;opacity:.62}
-.hero-drawing .roof-detail{stroke-width:1.05;opacity:.35}
-.hero-weather,.hero-evening,.hero-day,.hero-snowfall{opacity:0;transition:opacity 300ms ease}
-.hero-day{stroke:#e2c098;opacity:.82}
-.hero-evening{stroke:#f9ca85}
-.hero-weather{stroke:#fff5e4;stroke-width:2}
-.hero-snowfall{stroke:#efe0cc;stroke-width:1.2}
-.hero[data-time="night"] .hero-evening{opacity:.95}
-.hero[data-time="night"] .hero-day{opacity:0}
-.hero[data-weather="snow"] .hero-weather,.hero[data-weather="snowing"] .hero-weather{opacity:1}
-.hero[data-weather="snowing"] .hero-snowfall{opacity:.75}
-@keyframes house-trace{from{stroke-dasharray:1;stroke-dashoffset:1}to{stroke-dasharray:1;stroke-dashoffset:0}}
-@media (prefers-reduced-motion:reduce){
-  .hero-drawing [pathLength]{animation:none}
-  .hero,.hero-weather,.hero-evening,.hero-day,.hero-snowfall{transition:none}
-}
+.map{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.map-fade{position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(var(--sky) calc(var(--sat) + var(--tgc) + 24px),transparent calc(var(--sat) + var(--tgc) + 118px),transparent calc(100% - 120px),var(--sky) calc(100% - 20px))}
+.map-label{position:absolute;left:0;top:0;z-index:2;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:1px;
+  padding:6px 11px 7px;border-radius:12px;background:rgba(255,248,238,.94);color:#2A1D15;box-shadow:0 6px 18px rgba(0,0,0,.22);
+  opacity:0;transition:opacity 220ms ease;white-space:nowrap}
+.map-label::after{content:"";position:absolute;bottom:-5px;left:50%;width:10px;height:10px;margin-left:-5px;background:inherit;transform:rotate(45deg);border-radius:0 0 2px 0}
+.map-label.on{opacity:1}
+.map-label b{font-size:14px;font-weight:700;letter-spacing:-.01em}
+.map-label span{font-size:11.5px;color:#6B5444}
+.map-toggle{position:absolute;right:16px;bottom:34px;z-index:3;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;
+  background:rgba(16,18,28,.34);border:.5px solid rgba(255,255,255,.16);-webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);
+  transition:transform 160ms var(--ease-out)}
+.map-toggle:active{transform:scale(.92)}
+.no-glass .map-toggle{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(16,18,28,.82)}
+@media (prefers-reduced-motion:reduce){.map-label{transition:none}}
 .home-body{position:relative;z-index:2;margin-top:-32px;padding:32px 16px calc(96px + var(--sab));min-height:calc(100% - var(--H,325px) + 32px);background:var(--bg);border-radius:32px 32px 0 0}
 @supports (animation-timeline: scroll()){
   .hero-greet{animation:greetOut linear both;animation-timeline:scroll(nearest);animation-range:0 140px}
@@ -131,8 +127,8 @@ svg{display:block}
 .hero-greet .avatar{width:44px;height:44px;background:rgba(255,255,255,.4);color:inherit;border:.5px solid rgba(255,255,255,.6);
   -webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);pointer-events:auto;transition:transform 160ms var(--ease-out)}
 .hero-greet .avatar:active{transform:scale(.94)}
-.hero-status{position:absolute;left:16px;bottom:34px;z-index:3;display:flex;align-items:center;gap:8px;
-  height:34px;padding:0 13px 0 11px;border-radius:999px;font-size:13.5px;font-weight:500;max-width:calc(100% - 24px);
+.hero-status{position:absolute;left:16px;bottom:39px;z-index:3;display:flex;align-items:center;gap:8px;
+  height:34px;padding:0 13px 0 11px;border-radius:999px;font-size:13.5px;font-weight:500;max-width:calc(100% - 92px);
   background:rgba(255,255,255,.55);color:#1A1A19;border:.5px solid rgba(255,255,255,.6);
   -webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);
   box-shadow:0 4px 16px rgba(0,0,0,.08);transition:background-color 600ms ease,color 600ms ease,border-color 600ms ease}
@@ -433,37 +429,15 @@ html.in-telegram body.guest-pass #passView .push-body{padding-top:calc(max(72px,
     <section class="tab active" id="tab-home" aria-label="Главная">
       <div class="hero-layer" id="heroLayer">
         <div class="hero" id="hero">
-          <div class="hero-house" aria-hidden="true">
-            <svg class="hero-drawing" viewBox="18 175 524 385" aria-hidden="true">
-              <g class="hero-day">
-                <path pathLength="1" d="M450 215a14 14 0 1 0 28 0 14 14 0 1 0-28 0M464 193v-6m0 56v-6m-22-22h-6m56 0h-6m-37-15-4-4m38 38-4-4m0-30 4-4m-38 38 4-4"/>
-              </g>
-              <g class="hero-evening">
-                <path pathLength="1" d="M476 198a18 18 0 1 0 7 28 17 17 0 0 1-7-28Z"/>
-              </g>
-              <path class="elevation-guide" pathLength="1" d="M61 440h156m118 0h151 M247 454l-33 98m92-98 35 98"/>
-              <path pathLength="1" d="M62 325 187 245h93l19 10 39-6 137 77H322l-45-39-47 39H62Z M74 331h154m96 0h142 M291 277l47-28"/>
-              <path pathLength="1" style="--trace-delay:150ms" d="M77 331v100h158m85 0h147V331 M91 336v90m363-90v90 M219 451h114m-105-7h99m-92-6h84"/>
-              <path pathLength="1" style="--trace-delay:260ms" d="M221 326l56-43 56 43 M238 326v112m80-112v112 M248 434v-77a30 30 0 0 1 60 0v77 M260 433v-77c0-22 37-22 37 0v77Z"/>
-              <path pathLength="1" style="--trace-delay:390ms" d="M106 344h63v65h-63Z M112 350h52v54h-52Z M130 350v54m17-54v54m-35-28h52 M189 345h38v64h-38Z M195 350h26v54h-26Z M208 350v54m-13-28h26 M105 416h66m16 0h42"/>
-              <path pathLength="1" style="--trace-delay:430ms" d="M332 344h33v65h-33Z M338 350h22v54h-22Z M349 350v54m-11-28h22 M374 344h65v65h-65Z M380 350h53v54h-53Z M397 350v54m18-54v54m-35-28h53 M330 416h110"/>
-              <path class="roof-detail" pathLength="1" style="--trace-delay:200ms" d="M161 265h122m-151 19h105m-135 19h110m124-22h60m-46 19h78m-65 17h90"/>
-              <path class="elevation-guide" pathLength="1" style="--trace-delay:440ms" d="M51 445h151m145 0h163M236 473h81m-88 24h98m-107 31h118M183 503v-26h9v26m175 0v-26h9v26"/>
-              <g class="hero-weather">
-                <path pathLength="1" style="--trace-delay:250ms" d="M64 320l35-24 30-19 30-21 26-16q14-5 29-2h65q12 1 23 8l32-6q10-4 18 3l28 16 29 16 31 19 32 18M71 333q10 0 13 5t14-1m15-4q7 1 11 6t13-3m245-2q10 8 18 2m17-2q5 6 14 2m15-3q7 5 13 1"/>
-                <path pathLength="1" style="--trace-delay:430ms" d="M49 444q18-10 35-4 16-4 28 2 16-8 38 0 15-4 37 0m183 0q16-7 32-2 18-6 36 1 20-9 40-2 14-4 29 4"/>
-              </g>
-              <g class="hero-evening">
-                <path pathLength="1" style="--trace-delay:475ms" d="M180 475h15m-20 13-8 5m33-5 8 5m156-18h15m-20 13-8 5m33-5 8 5"/>
-              </g>
-              <path class="hero-snowfall" pathLength="1" style="--trace-delay:510ms" d="M76 224l-3 5m43 13-3 5m25-48-3 5m42 0-3 5m47 8-3 5m38-22-3 5m42 26-3 5m43-29-3 5m63 24-3 5m28-41-3 5m88 31-3 5M52 277l-3 5m458 6-3 5m-466 61-3 5m485 14-3 5"/>
-            </svg>
-          </div>
+          <canvas class="map" id="map" role="img" aria-label="Карта посёлка, ваш участок 6"></canvas>
+          <div class="map-fade" aria-hidden="true"></div>
+          <div class="map-label" id="mapLabel" aria-hidden="true"><b>Участок 6</b><span id="mapStreet"></span></div>
         </div>
         <div class="hero-greet" id="heroGreet">
-          <div><small id="greetTime">Добрый день</small><strong>Участок 47</strong></div>
+          <div><small id="greetTime">Добрый день</small><strong>Участок 6</strong></div>
           <button class="avatar" id="openDemo" type="button" aria-label="Сценарии для показа (демо)">АА</button>
         </div>
+        <button class="map-toggle" id="mapToggle" type="button" aria-label="Показать весь посёлок"></button>
         <div class="hero-status" role="status"><i id="statusDot"></i><span id="statusText"></span></div>
       </div>
       <div class="home-body">
@@ -516,7 +490,7 @@ html.in-telegram body.guest-pass #passView .push-body{padding-top:calc(max(72px,
     <section class="tab" id="tab-pay" aria-label="Платежи">
       <h1 class="h1">Платежи</h1>
       <div class="card">
-        <div class="bill-head"><small>Ноябрь 2026 · участок 47</small><div class="amount">3 969<span class="kop">,19 ₽</span></div></div>
+        <div class="bill-head"><small>Ноябрь 2026 · участок 6</small><div class="amount">3 969<span class="kop">,19 ₽</span></div></div>
         <div class="bill" id="bill"></div>
         <div class="bill-foot"><button class="btn btn-primary btn-lg" id="payBtn" type="button"><span class="lbl" id="payBtnLbl">Оплатить через СБП</span></button></div>
       </div>
@@ -564,7 +538,7 @@ html.in-telegram body.guest-pass #passView .push-body{padding-top:calc(max(72px,
           <div class="pass-in">
             <div class="pass-brand"><span>Брайт Парк</span><span>Демо-пропуск</span></div>
             <div class="pass-name" id="pName">Иван</div>
-            <div class="pass-type" id="pType">Гость · участок 47</div>
+            <div class="pass-type" id="pType">Гость · участок 6</div>
             <div class="pass-grid">
               <div><small>Действует до</small><b id="pUntil">23:59 сегодня</b></div>
               <div><small>Авто</small><b id="pCar">—</b></div>
@@ -764,7 +738,8 @@ function sceneOf(){
   return {night:isNight(), weather:state.wx==='cover'?'snow':state.wx};
 }
 
-(function(){var h=new Date().getHours();$('#greetTime').textContent=h<5?'Доброй ночи':h<12?'Доброе утро':h<18?'Добрый день':'Добрый вечер';})();
+/* greeting follows the sun, like the map: after sunset it is evening even at 17:00 in November */
+(function(){var h=new Date().getHours(),dark=sunAltitude(new Date(),VILLAGE.lat,VILLAGE.lon)<-4;$('#greetTime').textContent=h<5?'Доброй ночи':h<12?'Доброе утро':dark?'Добрый вечер':'Добрый день';})();
 
 /* ---------- feed + status from state ---------- */
 var ICON={
@@ -797,6 +772,174 @@ function renderInfo(){
   }).join('');
 }
 
+/* ---------- village map ----------
+   Demo layout is generated (650 plots on a plausible street grid). With the real master plan,
+   replace build() with the plots, streets and gate taken from it; the rendering stays the same. */
+var villageMap=(function(){
+  var cv=$('#map'),ctx=cv.getContext('2d'),lbl=$('#mapLabel'),btn=$('#mapToggle');
+  var MY=6,TOTAL=650,ANG=-8*Math.PI/180,COS=Math.cos(ANG),SIN=Math.sin(ANG);
+  var PW=25,PD=40,ST=12,PER=92,AV=9,LANE=8,LANES=[-310,310,-620,620];
+  var STREETS=['Лесная','Солнечная','Сосновая','Берёзовая','Липовая','Кедровая','Рябиновая','Еловая','Ольховая','Ореховая','Вишнёвая','Каштановая','Клёновая','Луговая','Озёрная','Садовая'];
+  var PARK={x:0,y:-40,rx:135,ry:82};
+  var seed=11;function rnd(){seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
+  function blob(x,y,R){var a=Math.atan2(y/.74,x),f=1+.10*Math.sin(2*a+1)+.06*Math.sin(3*a+2.2)+.04*Math.sin(5*a+.5);return Math.hypot(x,y/.74)/(R*f)}
+  function inPark(x,y,m){var dx=(x-PARK.x)/(PARK.rx+m),dy=(y-PARK.y)/(PARK.ry+m);return dx*dx+dy*dy<1}
+
+  var plots=[],streets=[],lanes=[],trees=[],parkTrees=[],lamps=[],gate,bounds,mine,R;
+  function build(){
+    var xs=[],x=AV+3;
+    while(x<1000){var hit=null;LANES.forEach(function(l){if(l>0&&x<l+LANE/2&&x+PW>l-LANE/2)hit=l});
+      if(hit!==null){x=hit+LANE/2+3;continue}xs.push(x);x+=PW}
+    var cols=xs.concat(xs.map(function(v){return -v-PW}));
+    function cand(Rr){var out=[];
+      for(var k=-9;k<=9;k++){var y0=k*PER;
+        [[y0+ST/2,k],[y0+ST/2+PD,k+1]].forEach(function(r){
+          cols.forEach(function(cx){var c=[[cx,r[0]],[cx+PW,r[0]],[cx,r[0]+PD],[cx+PW,r[0]+PD]],ok=true,mx=0;
+            for(var i=0;i<4;i++){var b=blob(c[i][0],c[i][1],Rr);mx=Math.max(mx,b);if(b>=1||inPark(c[i][0],c[i][1],8))ok=false}
+            if(ok)out.push({x:cx,y:r[0],face:r[1],north:r[1]===k,b:mx})})})}
+      return out}
+    R=420;var c=cand(R);while(c.length<TOTAL){R+=4;c=cand(R)}
+    c.sort(function(a,b){return a.b-b.b});plots=c.slice(0,TOTAL);
+    /* numbering: from the central street by the park outwards, on each street from the avenue outwards */
+    var faces={};plots.forEach(function(p){(faces[p.face]=faces[p.face]||[]).push(p)});
+    var keys=Object.keys(faces).map(Number).sort(function(a,b){return Math.abs(a*PER-PARK.y-PARK.ry)-Math.abs(b*PER-PARK.y-PARK.ry)||b-a}),n=1;
+    keys.forEach(function(k,si){var list=faces[k],name=STREETS[si%STREETS.length];
+      list.sort(function(a,b){var ha=a.x>0?0:1,hb=b.x>0?0:1;return ha-hb||Math.abs(a.x)-Math.abs(b.x)||(a.north?1:0)-(b.north?1:0)});
+      list.forEach(function(p){p.n=n++;p.street=name});
+      var xmin=Math.min.apply(null,list.map(function(p){return p.x})),xmax=Math.max.apply(null,list.map(function(p){return p.x+PW}));
+      streets.push({y:k*PER,x0:xmin-6,x1:xmax+6,name:name})});
+    LANES.forEach(function(l){var near=plots.filter(function(p){return Math.abs(p.x+PW/2-l)<PW*1.6});if(!near.length)return;
+      lanes.push({x:l,y0:Math.min.apply(null,near.map(function(p){return p.y}))-ST/2,y1:Math.max.apply(null,near.map(function(p){return p.y+PD}))+ST/2})});
+    var ymin=Math.min.apply(null,plots.map(function(p){return p.y})),ymax=Math.max.apply(null,plots.map(function(p){return p.y+PD}));
+    gate={x:0,y:ymax+46};streets.ymin=ymin-ST;
+    /* houses: one per plot near the street, some plots are still empty */
+    plots.forEach(function(p){if(p.n!==MY&&rnd()<.13){p.house=null;return}
+      var w=9+rnd()*5,h=10+rnd()*4,hx=p.x+3+rnd()*(PW-6-w),off=7+rnd()*6,hy=p.north?p.y+off:p.y+PD-off-h;
+      p.house={x:hx,y:hy,w:w,h:h,lit:rnd()<.72}});
+    mine=plots.filter(function(p){return p.n===MY})[0];
+    for(var i=0;i<2400;i++){var a=rnd()*Math.PI*2,rr=R*(1.02+rnd()*.55),tx=Math.cos(a)*rr*1.05,ty=Math.sin(a)*rr*.74;
+      if(Math.abs(tx)<20&&ty>0)continue;trees.push([tx,ty,2+rnd()*2.6])}
+    for(i=0;i<140;i++){var pa=rnd()*Math.PI*2,pr=Math.sqrt(rnd());var px=PARK.x+Math.cos(pa)*pr*(PARK.rx-10),py=PARK.y+Math.sin(pa)*pr*(PARK.ry-10);
+      if(Math.abs(px)<AV+6)continue;var pdx=(px-55)/52,pdy=(py-PARK.y+8)/30;if(pdx*pdx+pdy*pdy<1.3)continue;parkTrees.push([px,py,3+rnd()*3])}
+    streets.forEach(function(s){for(var x=s.x0+20;x<s.x1;x+=48){if(Math.abs(x)>AV+4)lamps.push([x,s.y])}});
+    for(var y=streets.ymin;y<gate.y;y+=48)lamps.push([AV+2,y],[-AV-2,y]);
+    bounds={x0:Math.min.apply(null,plots.map(function(p){return p.x}))-60,x1:Math.max.apply(null,plots.map(function(p){return p.x+PW}))+60,y0:ymin-60,y1:gate.y+30};
+  }
+  build();
+
+  /* world geometry is built once as Path2D; every frame only changes the transform */
+  var P={};
+  function rectP(p,x,y,w,h){p.rect(x,y,w,h)}
+  (function(){
+    P.land=new Path2D();for(var i=0;i<=120;i++){var a=i/120*Math.PI*2,f=1+.10*Math.sin(2*a+1)+.06*Math.sin(3*a+2.2)+.04*Math.sin(5*a+.5),r=R*f*1.04;
+      var x=Math.cos(a)*r,y=Math.sin(a)*r*.74;i?P.land.lineTo(x,y):P.land.moveTo(x,y)}P.land.closePath();
+    P.roads=new Path2D();streets.forEach(function(s){P.roads.moveTo(s.x0,s.y);P.roads.lineTo(s.x1,s.y)});
+    lanes.forEach(function(l){P.roads.moveTo(l.x,l.y0);P.roads.lineTo(l.x,l.y1)});
+    P.avenue=new Path2D();P.avenue.moveTo(0,streets.ymin);P.avenue.lineTo(0,gate.y+220);
+    P.plots=new Path2D();P.houses=new Path2D();P.lit=new Path2D();P.dark=new Path2D();
+    plots.forEach(function(p){rectP(P.plots,p.x,p.y,PW,PD);var h=p.house;if(!h||p===mine)return;rectP(P.houses,h.x,h.y,h.w,h.h);rectP(h.lit?P.lit:P.dark,h.x,h.y,h.w,h.h)});
+    P.trees=new Path2D();trees.forEach(function(t){P.trees.moveTo(t[0]+t[2],t[1]);P.trees.arc(t[0],t[1],t[2],0,Math.PI*2)});
+    P.park=new Path2D();P.park.ellipse(PARK.x,PARK.y,PARK.rx,PARK.ry,0,0,Math.PI*2);
+    P.parkTrees=new Path2D();parkTrees.forEach(function(t){P.parkTrees.moveTo(t[0]+t[2],t[1]);P.parkTrees.arc(t[0],t[1],t[2],0,Math.PI*2)});
+    P.pond=new Path2D();P.pond.ellipse(55,PARK.y-8,46,26,.2,0,Math.PI*2);
+    P.gate=new Path2D();P.gate.rect(gate.x+AV+3,gate.y-6,12,9);
+  })();
+
+  /* camera */
+  var dpr=1,W=0,H=0,cam={x:0,y:0,s:1},view='plot',anim=null,sweep=null,pulse=null,raf=0,sc={night:false,weather:'none'},cleared=true,flakes=[];
+  function focal(){var top=96+num('--sat'),bot=96;return {x:W/2,y:top+(H-top-bot)/2,top:top,bot:bot}}
+  function num(v){return parseFloat(getComputedStyle($('#app')).getPropertyValue(v))||0}
+  function camPlot(){return {x:mine.x+PW/2,y:mine.y+PD/2,s:Math.max(1.15,W/300)}}
+  function camAll(){var f=focal(),pts=[[bounds.x0,bounds.y0],[bounds.x1,bounds.y0],[bounds.x0,bounds.y1],[bounds.x1,bounds.y1]].map(function(q){return [q[0]*COS-q[1]*SIN,q[0]*SIN+q[1]*COS]});
+    var xs=pts.map(function(q){return q[0]}),ys=pts.map(function(q){return q[1]}),w=Math.max.apply(null,xs)-Math.min.apply(null,xs),h=Math.max.apply(null,ys)-Math.min.apply(null,ys);
+    var s=Math.min((W-24)/w,(H-f.top-f.bot+40)/h);return {x:(bounds.x0+bounds.x1)/2,y:(bounds.y0+bounds.y1)/2,s:s}}
+  function toScreen(x,y){var f=focal(),dx=(x-cam.x)*cam.s,dy=(y-cam.y)*cam.s;return [f.x+dx*COS-dy*SIN,f.y+dx*SIN+dy*COS]}
+  function setT(){var f=focal(),a=cam.s*COS*dpr,b=cam.s*SIN*dpr;ctx.setTransform(a,b,-b,a,dpr*f.x-(a*cam.x-b*cam.y),dpr*f.y-(b*cam.x+a*cam.y))}
+
+  var glow;(function(){glow=document.createElement('canvas');glow.width=glow.height=64;var g=glow.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,32);
+    gr.addColorStop(0,'rgba(255,214,150,.9)');gr.addColorStop(.25,'rgba(255,190,110,.35)');gr.addColorStop(1,'rgba(255,170,90,0)');g.fillStyle=gr;g.fillRect(0,0,64,64)})();
+  var CREAM='239,224,204',SNOW='255,251,246',WARM='249,202,133';
+  function rgba(c,a){return 'rgba('+c+','+a+')'}
+  /* roads are painted opaque (pre-mixed with the sky) so crossings do not get brighter where strokes overlap */
+  function mix(c,a){var h=currentSky.replace('#',''),b=[0,2,4].map(function(i){return parseInt(h.substr(i,2),16)}),f=c.split(',').map(Number);
+    return 'rgb('+f.map(function(v,i){return Math.round(b[i]+(v-b[i])*a)}).join(',')+')'}
+
+  function draw(now){
+    ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);if(!W)return;
+    var s=cam.s,px=1/s,snow=sc.weather!=='none',night=sc.night,detail=Math.min(1,Math.max(0,(s-.45)/.9));
+    setT();
+    ctx.fillStyle=rgba(snow?SNOW:CREAM,snow?.09:.045);ctx.fill(P.land);
+    ctx.fillStyle=rgba(snow?SNOW:CREAM,(snow?(night?.16:.22):(night?.07:.11))*(1-.6*detail));ctx.fill(P.trees);
+    ctx.fillStyle=rgba(snow?SNOW:CREAM,.05);ctx.fill(P.park);ctx.fillStyle=rgba(snow?SNOW:CREAM,snow?.2:.12);ctx.fill(P.parkTrees);
+    ctx.fillStyle=snow?rgba(SNOW,.2):'rgba(186,212,222,.16)';ctx.fill(P.pond);ctx.lineWidth=1.2*px;ctx.strokeStyle=rgba(snow?SNOW:'200,226,236',.35);ctx.stroke(P.pond);
+    /* roads: snowy until the dispatcher marks them cleared; the plough sweeps out from the gate */
+    ctx.lineCap='butt';
+    function clearedRoads(){ctx.lineWidth=ST+3;ctx.strokeStyle=mix(SNOW,.38);ctx.stroke(P.roads);ctx.lineWidth=2*AV+3;ctx.stroke(P.avenue);
+      ctx.lineWidth=ST-1;ctx.strokeStyle=mix('28,18,12',.5);ctx.stroke(P.roads);ctx.lineWidth=2*AV-1;ctx.stroke(P.avenue)}
+    if(!snow){ctx.strokeStyle=mix(CREAM,.19);ctx.lineWidth=ST;ctx.stroke(P.roads);ctx.lineWidth=2*AV;ctx.stroke(P.avenue)}
+    else if(cleared&&!sweep)clearedRoads();
+    else{ctx.strokeStyle=mix(SNOW,.42);ctx.lineWidth=ST;ctx.stroke(P.roads);ctx.lineWidth=2*AV;ctx.stroke(P.avenue);
+      if(sweep){var p=Math.min(1,Math.max(0,(now-sweep.t0)/sweep.d)),e=1-Math.pow(1-p,3);ctx.save();ctx.beginPath();ctx.arc(gate.x,gate.y,e*sweep.r,0,Math.PI*2);ctx.clip();clearedRoads();ctx.restore();if(p>=1)sweep=null}}
+    /* plots and houses fade in as the camera gets closer */
+    ctx.lineWidth=.8*px;ctx.strokeStyle=rgba(snow?SNOW:CREAM,.08+.2*detail);ctx.stroke(P.plots);
+    if(night){ctx.fillStyle=rgba(snow?SNOW:CREAM,snow?.26:.14);ctx.fill(P.dark);ctx.fillStyle=rgba(WARM,.55);ctx.fill(P.lit)}
+    else{ctx.fillStyle=rgba(snow?SNOW:CREAM,snow?.62:.42);ctx.fill(P.houses)}
+    ctx.fillStyle=rgba(CREAM,.75);ctx.fill(P.gate);
+    if(night){ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.3+.7*detail;var g=12;
+      for(var i=0;i<lamps.length;i++){var l=lamps[i];ctx.drawImage(glow,l[0]-g,l[1]-g,g*2,g*2)}ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1}
+    /* the resident's plot */
+    var t=pulse?Math.min(1,Math.max(0,(now-pulse)/2400)):1;
+    ctx.fillStyle=rgba(WARM,.2);ctx.fillRect(mine.x,mine.y,PW,PD);
+    ctx.lineWidth=2*px;ctx.strokeStyle=rgba(WARM,1);ctx.strokeRect(mine.x,mine.y,PW,PD);
+    if(mine.house){ctx.fillStyle=rgba(WARM,1);ctx.fillRect(mine.house.x,mine.house.y,mine.house.w,mine.house.h)}
+    if(pulse&&t<1){var k=(t*3)%1,grow=k*16*px*6;ctx.lineWidth=1.5*px;ctx.strokeStyle=rgba(WARM,(1-k)*.7);ctx.strokeRect(mine.x-grow,mine.y-grow,PW+grow*2,PD+grow*2)}
+    if(t>=1)pulse=null;
+    /* labels in screen space */
+    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textBaseline='middle';
+    if(s<1){var gs=toScreen(gate.x,gate.y+16);ctx.font='600 11px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle=rgba(CREAM,.7);ctx.textAlign='center';ctx.fillText('КПП',gs[0],gs[1])}
+    if(s>1.1){var dirty=snow&&!cleared;ctx.font='500 11px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle=dirty?'rgba(60,42,30,.8)':rgba(CREAM,.6);
+      streets.forEach(function(st){var wx=Math.min(st.x1-50,Math.max(st.x0+50,cam.x-125/s)),q=toScreen(wx,st.y);
+        if(q[1]<70||q[1]>H-40)return;ctx.save();ctx.translate(q[0],q[1]);ctx.rotate(ANG);ctx.fillText('ул. '+st.name,0,0);ctx.restore()})}
+    /* snowfall in screen space */
+    if(sc.weather==='snowing'){ctx.fillStyle='rgba(255,255,255,.75)';var dt=Math.min(50,now-(draw.last||now));draw.last=now;
+      flakes.forEach(function(f){f.y+=f.v*dt;f.x+=Math.sin((now/900)+f.p)*.15;if(f.y>H+4){f.y=-4;f.x=Math.random()*W}ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,Math.PI*2);ctx.fill()})}
+    /* DOM label above the plot */
+    var lp=toScreen(mine.x+PW/2,mine.y),show=view==='plot'&&!anim&&s>1;
+    lbl.style.transform='translate3d('+lp[0].toFixed(1)+'px,'+(lp[1]-10).toFixed(1)+'px,0) translate(-50%,-100%)';lbl.classList.toggle('on',show);
+  }
+  function active(){return !document.hidden&&$('#tab-home').classList.contains('active')}
+  function frame(now){raf=0;
+    if(anim){var p=Math.min(1,Math.max(0,(now-anim.t0)/anim.d)),e=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,a=anim.a,b=anim.b;
+      cam.x=a.x+(b.x-a.x)*e;cam.y=a.y+(b.y-a.y)*e;cam.s=Math.exp(Math.log(a.s)+(Math.log(b.s)-Math.log(a.s))*e);
+      if(p>=1){var done=anim.done;anim=null;done&&done(now)}}
+    draw(now);
+    if((anim||sweep||pulse||sc.weather==='snowing')&&active())raf=requestAnimationFrame(frame);
+  }
+  function kick(){if(!raf)raf=requestAnimationFrame(frame)}
+  function go(to,d,done){if(reduce){view=to;cam=to==='plot'?camPlot():camAll();kick();done&&done();return}
+    anim={a:{x:cam.x,y:cam.y,s:cam.s},b:to==='plot'?camPlot():camAll(),t0:performance.now(),d:d,done:done};view=to;kick()}
+  function setBtn(){btn.setAttribute('aria-label',view==='plot'?'Показать весь посёлок':'Показать мой участок');
+    btn.innerHTML=view==='plot'?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>'
+      :'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>'}
+  function toggle(){haptic('light');go(view==='plot'?'all':'plot',900,function(n){if(view==='plot'&&!reduce){pulse=n;kick()}});setBtn()}
+  btn.addEventListener('click',toggle);cv.addEventListener('click',toggle);
+  function resize(){var r=cv.getBoundingClientRect();if(!r.width)return;dpr=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+    if(!anim)cam=view==='plot'?camPlot():camAll();
+    flakes=[];for(var i=0;i<70;i++)flakes.push({x:Math.random()*W,y:Math.random()*H,r:.8+Math.random()*1.6,v:.02+Math.random()*.035,p:Math.random()*6});kick()}
+  var intro=false;
+  $('#mapStreet').textContent='ул. '+mine.street;
+  return {
+    resize:resize,
+    set:function(s,isCleared){var wasDirty=sc.weather!=='none'&&!cleared;sc=s;cleared=isCleared;
+      if(wasDirty&&isCleared&&s.weather!=='none'&&!reduce){var r=0;plots.forEach(function(p){r=Math.max(r,Math.hypot(p.x-gate.x,p.y-gate.y))});sweep={t0:performance.now(),d:1800,r:r+60}}
+      if(!intro){intro=true;resize();if(reduce){cam=camPlot();view='plot';setBtn();kick()}else{cam=camAll();view='all';setBtn();kick();
+        setTimeout(function(){go('plot',1500,function(n){pulse=n;kick()});setBtn()},500)}}
+      kick()},
+    sync:function(){if(active())kick()},
+    plot:function(){return mine}
+  };
+})();
+
 var heroBox=$('#hero');
 function showHero(sc){
   var app=$('#app');
@@ -806,6 +949,7 @@ function showHero(sc){
   app.style.setProperty('--sky',currentSky);
   app.style.setProperty('--sky-ink','#FFFFFF');
   app.dataset.ink='light';
+  villageMap.set(sc,state.cleared);
   paintHeader();
 }
 /* Header takes the drawing background colour only on the home tab. */
@@ -820,7 +964,7 @@ function apply(done){showHero(sceneOf());renderInfo();syncDemo();if(done)done()}
 
 /* ---------- full-bleed hero: collapse on scroll ---------- */
 var heroH=325;
-function layoutHero(){var w=$('#app').clientWidth;heroH=Math.round(w+20);$('#app').style.setProperty('--H',heroH+'px')}
+function layoutHero(){var w=$('#app').clientWidth;heroH=Math.round(w+20);$('#app').style.setProperty('--H',heroH+'px');villageMap.resize()}
 window.addEventListener('resize',layoutHero);
 
 /* ---------- demo sheet controls ---------- */
@@ -906,7 +1050,7 @@ function openGate(){
 function showTab(name){
   $$('.tab').forEach(function(t){t.classList.toggle('active',t.id==='tab-'+name)});
   $$('.tabbar button').forEach(function(b){b.dataset.tab===name?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current')});
-  $('#tab-'+name).scrollTop=0;paintHeader();
+  $('#tab-'+name).scrollTop=0;paintHeader();villageMap.sync();
 }
 $$('.tabbar button').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)})});
 $('#payCard').addEventListener('click',function(){showTab('pay')});
@@ -935,7 +1079,7 @@ function renderHist(){$('#payHist').innerHTML=HIST.map(function(h,i){
 renderHist();
 $('#payHist').addEventListener('click',function(e){var r=e.target.closest('[data-h]');if(!r)return;var h=HIST[+r.dataset.h];
   $('#rcTitle').textContent='Чек за '+h.m.toLowerCase();
-  $('#rcBody').innerHTML='<div class="rc-sum">3 969,19 ₽</div>'+[['Дата',h.d],['Способ','СБП'],['Участок','47'],['Получатель','УК «Брайт Парк Комьюнити»'],['Назначение','Обслуживание, '+h.m.toLowerCase()],['Номер чека','БП-'+h.n]]
+  $('#rcBody').innerHTML='<div class="rc-sum">3 969,19 ₽</div>'+[['Дата',h.d],['Способ','СБП'],['Участок','6'],['Получатель','УК «Брайт Парк Комьюнити»'],['Назначение','Обслуживание, '+h.m.toLowerCase()],['Номер чека','БП-'+h.n]]
     .map(function(x){return '<div class="rc-row"><span>'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('');
   openSheet($('#rcSheet'))});
 $('#rcSend').addEventListener('click',function(){closeSheet();haptic('success');toast('Чек отправлен в чат с ботом посёлка')});
@@ -1010,7 +1154,7 @@ $('#fPhoto').addEventListener('change',function(){var fs=Array.prototype.slice.c
 $('#photos').addEventListener('click',function(e){var x=e.target.closest('[data-x]');if(!x)return;shots.splice(+x.dataset.x,1);renderShots()});
 function stamp(){return 'Сегодня, '+hhmm(new Date())}
 $('#reqForm').addEventListener('submit',function(e){
-  e.preventDefault();var t=$('#fText'),txt=t.value.trim(),cat=getCat(),other=getWhere()==='other',w=$('#fWhere'),place=other?w.value.trim():'участок 47';
+  e.preventDefault();var t=$('#fText'),txt=t.value.trim(),cat=getCat(),other=getWhere()==='other',w=$('#fWhere'),place=other?w.value.trim():'участок 6';
   if(!txt&&!shots.length){t.focus();t.classList.add('err');t.placeholder='Опишите проблему или добавьте фото';haptic('error');setTimeout(function(){t.classList.remove('err')},1600);return}
   if(other&&!place){w.focus();w.classList.add('err');haptic('error');setTimeout(function(){w.classList.remove('err')},1600);return}
   var id=reqs.reduce(function(m,r){return Math.max(m,r.id)},0)+1;
@@ -1087,7 +1231,7 @@ $('#passForm').addEventListener('submit',function(e){
 var curPass=0;
 function openPass(i){
   curPass=i;var p=passes[i];
-  $('#pName').textContent=p.name;$('#pType').textContent=p.type+' · участок 47';
+  $('#pName').textContent=p.name;$('#pType').textContent=p.type+' · участок 6';
   $('#pUntil').textContent=p.until.replace(/^до /,'');$('#pCar').textContent=p.car||'—';
   pushOpen($('#passView'));
 }
@@ -1129,6 +1273,7 @@ if(guestParams.get('guest')==='1'){
   if(TG&&TG.BackButton)TG.BackButton.hide();
 }
 /* re-check day/night every minute */
+document.addEventListener('visibilitychange',function(){villageMap.sync()});
 var lastNight=isNight();setInterval(function(){if(state.time==='auto'&&isNight()!==lastNight){lastNight=isNight();apply()}},60000);
 })();
 </script>
