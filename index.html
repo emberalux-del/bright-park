@@ -979,7 +979,7 @@ var villageMap=(function(){
   }
   function clip01(value){return Math.max(0,Math.min(1,value))}
   function moveFacade(next,now){
-    facadeMotion=reduce?null:{from:facade,to:next,start:now};
+    facadeMotion=reduce?null:{from:facade,to:next,start:now==null?null:now};
     if(reduce)facade=next;
     kick();
   }
@@ -1081,32 +1081,36 @@ var villageMap=(function(){
   }
   function active(){return !document.hidden&&$('#tab-home').classList.contains('active')}
   function frame(now){raf=0;
+    /* intro: a short look at the whole village, then one continuous move to plot 6;
+       the facade starts rising while the camera is still settling, so the two read as one motion */
     if(scan!==null){
       var elapsed=now-scan;
-      if(elapsed>=1850){
-        scan=null;anim=null;cam=camPlot();view='plot';setBtn();moveFacade(1,now);
-      }else if(elapsed>=430&&view==='all'){
-        go('plot',1420);setBtn();
-      }
+      if(elapsed>=380&&view==='all'&&!anim){go('plot',1750);setBtn()}
+      else if(elapsed>=380&&view==='plot'&&!anim&&!facadeMotion&&facade>=1)scan=null;
     }
-    if(anim){var p=Math.min(1,Math.max(0,(now-anim.t0)/anim.d)),e=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,a=anim.a,b=anim.b;
+    if(anim){if(anim.t0===null)anim.t0=now; /* start on the first painted frame, so a slow first frame does not skip the start */
+      var p=clip01((now-anim.t0)/anim.d),e=smooth(p),a=anim.a,b=anim.b;
       cam.x=a.x+(b.x-a.x)*e;cam.y=a.y+(b.y-a.y)*e;cam.tilt=a.tilt+(b.tilt-a.tilt)*e;cam.s=Math.exp(Math.log(a.s)+(Math.log(b.s)-Math.log(a.s))*e);
+      if(anim.to==='plot'&&!anim.fac&&p>=.68){anim.fac=1;moveFacade(1,now)}
       if(p>=1){var done=anim.done;anim=null;done&&done(now)}}
     if(facadeMotion){
-      var progress=clip01((now-facadeMotion.start)/(facadeMotion.to===1?1380:420));
-      facade=facadeMotion.from+(facadeMotion.to-facadeMotion.from)*progress;
+      if(facadeMotion.start===null)facadeMotion.start=now;
+      var progress=clip01((now-facadeMotion.start)/(facadeMotion.to===1?1500:420)),fe=facadeMotion.to===1?smooth(progress):1-Math.pow(1-progress,3);
+      facade=facadeMotion.from+(facadeMotion.to-facadeMotion.from)*fe;
       if(progress>=1)facadeMotion=null;
     }
     draw(now);
     if((scan!==null||anim||facadeMotion||(facade<1&&(sweep||pulse||sc.weather==='snowing')))&&active())kick();
   }
   function kick(){if(!raf)raf=requestAnimationFrame(frame)}
-  function go(to,d,done){if(reduce){view=to;cam=to==='plot'?camPlot():camAll();kick();done&&done(performance.now());return}
-    anim={a:{x:cam.x,y:cam.y,s:cam.s,tilt:cam.tilt},b:to==='plot'?camPlot():camAll(),t0:performance.now(),d:d,done:done};view=to;kick()}
+  function go(to,d,done){if(reduce){view=to;cam=to==='plot'?camPlot():camAll();if(to==='plot')moveFacade(1,null);kick();done&&done(performance.now());return}
+    anim={a:{x:cam.x,y:cam.y,s:cam.s,tilt:cam.tilt},b:to==='plot'?camPlot():camAll(),t0:null,d:d,done:done,to:to};view=to;kick()}
+  /* quintic smootherstep: zero speed and zero acceleration at both ends, so moves start and land without a jolt */
+  function smooth(p){return p*p*p*(p*(p*6-15)+10)}
   function setBtn(){btn.setAttribute('aria-label',view==='plot'?'Показать весь посёлок':'Показать мой участок');
     btn.innerHTML=view==='plot'?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>'
       :'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>'}
-  function toggle(){scan=null;haptic('light');var next=view==='plot'?'all':'plot';if(next==='all')moveFacade(0,performance.now());go(next,900,function(n){if(next==='plot'){pulse=reduce?null:n;moveFacade(1,n)}});setBtn()}
+  function toggle(){scan=null;haptic('light');var next=view==='plot'?'all':'plot';if(next==='all')moveFacade(0,null);go(next,next==='plot'?1250:900,function(n){if(next==='plot'){pulse=reduce?null:n}});setBtn()}
   btn.addEventListener('click',toggle);cv.addEventListener('click',toggle);
   function resize(){var r=cv.getBoundingClientRect();if(!r.width)return;dpr=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
     centerFacade();
