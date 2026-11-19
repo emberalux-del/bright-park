@@ -110,6 +110,8 @@ svg{display:block}
   background:rgba(16,18,28,.34);border:.5px solid rgba(255,255,255,.16);-webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);
   transition:transform 160ms var(--ease-out)}
 .map-toggle:active{transform:scale(.92)}
+.map-toggle.wait{opacity:0;pointer-events:none}
+.map-toggle{transition:transform 160ms var(--ease-out),opacity 300ms ease}
 .no-glass .map-toggle{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(16,18,28,.82)}
 @media (prefers-reduced-motion:reduce){.map-label{transition:none}}
 .home-body{position:relative;z-index:2;margin-top:-32px;padding:32px 16px calc(96px + var(--sab));min-height:calc(100% - var(--H,325px) + 32px);background:var(--bg);border-radius:32px 32px 0 0}
@@ -1074,9 +1076,45 @@ var villageMap=(function(){
     var lp=toScreen(mine.x+PW/2,mine.y),show=view==='plot'&&!anim&&s>1&&facade<.08;
     lbl.style.transform='translate3d('+lp[0].toFixed(1)+'px,'+(lp[1]-10).toFixed(1)+'px,0) translate(-50%,-100%)';lbl.classList.toggle('on',show);
     if(facade>0)drawFacade(facade);
+    if(splash)drawSplash(now);
   }
+  /* ---------- splash: 650 dots, one per plot, gather into the wordmark and land on their plots ----------
+     Plays once a day, only inside the map block: the gate and the rest of the screen work meanwhile. Tap skips it. */
+  var splash=null,SPL_END=2500;
+  function splashDue(){try{var d=new Date().toDateString();if(localStorage.getItem('bp-splash')===d)return false;localStorage.setItem('bp-splash',d)}catch(e){}return true}
+  function wordPoints(n){
+    var c=document.createElement('canvas'),w=Math.round(W),h=Math.round(H),g=c.getContext('2d'),f=focal(),font=getComputedStyle(document.body).fontFamily,fs=56;
+    c.width=w;c.height=h;g.font='800 '+fs+'px '+font;fs=Math.min(64,fs*(W-56)/g.measureText('БРАЙТ ПАРК').width);
+    g.font='800 '+fs+'px '+font;g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff';g.fillText('БРАЙТ ПАРК',f.x,f.y);
+    /* an even grid inside the letters reads crisper than random sampling; the step is picked so the grid holds about n dots */
+    var data=g.getImageData(0,0,w,h).data,inside=function(x,y){x=Math.round(x);y=Math.round(y);return data[(y*w+x)*4+3]>150},pts=[];
+    for(var st=6;st>=1.5;st-=.1){pts=[];for(var y=st/2;y<h;y+=st)for(var x=st/2;x<w;x+=st)if(inside(x,y))pts.push([x,y]);if(pts.length>=n)break}
+    var out=[],k=pts.length/n;for(var i=0;i<n;i++)out.push(pts[Math.min(pts.length-1,Math.floor(i*k))]);return out}
+  function startSplash(now){
+    var text=wordPoints(plots.length).sort(function(a,b){return a[0]-b[0]}),
+      land=plots.map(function(p){return toScreen(p.x+PW/2,p.y+PD/2)}).sort(function(a,b){return a[0]-b[0]}),f=focal(),far=Math.max(W,H)*.75;
+    splash={t0:now,dots:text.map(function(t,i){var a=rnd()*Math.PI*2,r=far*(.85+rnd()*.5);
+      return {sx:f.x+Math.cos(a)*r,sy:f.y+Math.sin(a)*r,tx:t[0],ty:t[1],lx:land[i][0],ly:land[i][1],d:rnd()*350,u:900+rnd()*250,sw:(rnd()-.5)*140,ph:rnd()*6}})};
+    btn.classList.add('wait');kick()}
+  function endSplash(now){splash=null;btn.classList.remove('wait');scan=now;kick()}
+  function ease3(p){return p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2}
+  function drawSplash(now){
+    var t=now-splash.t0,mapA=clip01((t-2050)/400);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.globalAlpha=1-mapA;ctx.fillStyle=currentSky;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
+    ctx.fillStyle=rgba(CREAM,1);ctx.beginPath();
+    var hold=t>1450&&t<1950,r=t<1900?1.45:1.45-.5*clip01((t-1900)/500);
+    for(var i=0;i<splash.dots.length;i++){var d=splash.dots[i],x,y;
+      if(t<1900){var p=clip01((t-d.d)/d.u),e=1-Math.pow(1-p,3),sw=Math.sin(p*Math.PI)*d.sw;
+        var dx=d.tx-d.sx,dy=d.ty-d.sy,l=Math.hypot(dx,dy)||1;x=d.sx+dx*e-dy/l*sw;y=d.sy+dy*e+dx/l*sw;
+        if(hold){x+=Math.sin(now/170+d.ph)*.25;y+=Math.cos(now/190+d.ph)*.25}}
+      else{var q=ease3(clip01((t-1900-d.lx/W*220)/480));x=d.tx+(d.lx-d.tx)*q;y=d.ty+(d.ly-d.ty)*q}
+      ctx.moveTo(x+r,y);ctx.arc(x,y,r,0,Math.PI*2)}
+    ctx.globalAlpha=1-mapA*.9;ctx.fill();ctx.globalAlpha=1}
   function active(){return !document.hidden&&$('#tab-home').classList.contains('active')}
   function frame(now){raf=0;
+    if(splash&&!splash.h&&now-splash.t0>1500){splash.h=1;haptic('light')}
+    if(splash&&now-splash.t0>=SPL_END){endSplash(now)}
     if(scan!==null){
       var elapsed=now-scan;
       if(elapsed>=1850){
@@ -1094,7 +1132,7 @@ var villageMap=(function(){
       if(progress>=1)facadeMotion=null;
     }
     draw(now);
-    if((scan!==null||anim||facadeMotion||(facade<1&&(sweep||pulse||sc.weather==='snowing')))&&active())kick();
+    if((splash||scan!==null||anim||facadeMotion||(facade<1&&(sweep||pulse||sc.weather==='snowing')))&&active())kick();
   }
   function kick(){if(!raf)raf=requestAnimationFrame(frame)}
   function go(to,d,done){if(reduce){view=to;cam=to==='plot'?camPlot():camAll();kick();done&&done(performance.now());return}
@@ -1102,7 +1140,7 @@ var villageMap=(function(){
   function setBtn(){btn.setAttribute('aria-label',view==='plot'?'Показать весь посёлок':'Показать мой участок');
     btn.innerHTML=view==='plot'?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>'
       :'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>'}
-  function toggle(){scan=null;haptic('light');var next=view==='plot'?'all':'plot';if(next==='all')moveFacade(0,performance.now());go(next,900,function(n){if(next==='plot'){pulse=reduce?null:n;moveFacade(1,n)}});setBtn()}
+  function toggle(){if(splash){haptic('light');endSplash(performance.now());return}scan=null;haptic('light');var next=view==='plot'?'all':'plot';if(next==='all')moveFacade(0,performance.now());go(next,900,function(n){if(next==='plot'){pulse=reduce?null:n;moveFacade(1,n)}});setBtn()}
   btn.addEventListener('click',toggle);cv.addEventListener('click',toggle);
   function resize(){var r=cv.getBoundingClientRect();if(!r.width)return;dpr=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
     centerFacade();
@@ -1117,7 +1155,7 @@ var villageMap=(function(){
       if(!intro){
         intro=true;resize();
         if(reduce){cam=camPlot();view='plot';facade=1}
-        else{cam=camAll();view='all';scan=performance.now()}
+        else{cam=camAll();view='all';if(splashDue())startSplash(performance.now());else scan=performance.now()}
         setBtn()
       }
       kick()},
