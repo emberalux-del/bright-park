@@ -857,7 +857,11 @@ var villageMap=(function(){
 
   /* camera */
   var dpr=1,W=0,H=0,cam={x:0,y:0,s:1,tilt:.8},view='plot',anim=null,sweep=null,pulse=null,scan=null,raf=0,sc={night:false,weather:'none'},cleared=true,flakes=[];
-  function focal(){var top=96+num('--sat'),bot=96;return {x:W/2,y:top+(H-top-bot)/2,top:top,bot:bot}}
+  /* the map is centred in the open band between the greeting and the bottom controls,
+     measured from the layout so Telegram's own top buttons and safe areas are accounted for */
+  var F=null;
+  function focal(){if(F)return F;var g=$('#heroGreet'),st=$('.hero-status'),top=g.offsetTop+g.offsetHeight+12,low=Math.min(st.offsetTop,btn.offsetTop)-12;
+    if(!(low>top))return {x:W/2,y:H/2,top:96,bot:96};F={x:W/2,y:(top+low)/2,top:top,bot:H-low};return F}
   function num(v){return parseFloat(getComputedStyle($('#app')).getPropertyValue(v))||0}
   function camPlot(){return {x:mine.x+PW/2,y:mine.y+PD/2,s:Math.max(1.15,W/300),tilt:.59}}
   function camAll(){var f=focal(),pts=[[bounds.x0,bounds.y0],[bounds.x1,bounds.y0],[bounds.x0,bounds.y1],[bounds.x1,bounds.y1]].map(function(q){return [q[0]*COS-q[1]*SIN,q[0]*SIN+q[1]*COS]});
@@ -1027,7 +1031,7 @@ var villageMap=(function(){
     });
     ctx.restore();
   }
-  function draw(now){
+  function draw(now){F=null;
     ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);if(!W)return;
     if(facade>=1){lbl.classList.remove('on');drawFacade(1);return}
     var s=cam.s,px=1/s,snow=sc.weather!=='none',night=sc.night,detail=Math.min(1,Math.max(0,(s-.45)/.9));
@@ -1108,6 +1112,8 @@ var villageMap=(function(){
     centerFacade();
     if(!anim)cam=view==='plot'?camPlot():camAll();
     flakes=[];for(var i=0;i<70;i++)flakes.push({x:Math.random()*W,y:Math.random()*H,r:.8+Math.random()*1.6,v:.02+Math.random()*.035,p:Math.random()*6});kick()}
+  /* Telegram changes its insets after launch (fullscreen, content safe area): follow the canvas size, not only window resizes */
+  if(window.ResizeObserver)new ResizeObserver(function(){var r=cv.getBoundingClientRect();if(Math.abs(r.width-W)>.5||Math.abs(r.height-H)>.5)resize()}).observe(cv);
   var intro=false;
   $('#mapStreet').textContent='ул. '+mine.street;
   return {
@@ -1152,6 +1158,7 @@ function apply(done){showHero(sceneOf());renderInfo();syncDemo();if(done)done()}
 var heroH=325;
 function layoutHero(){var w=$('#app').clientWidth;heroH=Math.round(w+20);$('#app').style.setProperty('--H',heroH+'px');villageMap.resize()}
 window.addEventListener('resize',layoutHero);
+if(TG&&TG.onEvent)['safeAreaChanged','contentSafeAreaChanged','fullscreenChanged','viewportChanged'].forEach(function(ev){try{TG.onEvent(ev,function(){setTimeout(layoutHero,50)})}catch(e){}});
 
 /* ---------- demo sheet controls ---------- */
 function segInit(id,get,set){
